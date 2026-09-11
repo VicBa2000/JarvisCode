@@ -1,0 +1,103 @@
+30 grabaciones, 5 modelos.
+Meta del §5.5: latencia STT < 1.0 s.
+
+  medido base en 21 s
+  medido large-v3 en 262 s
+  medido medium en 147 s
+  medido small en 52 s
+  medido tiny en 10 s
+
+RESUMEN
+modelo           WER  perfectas  lat med  lat p90  sin habla
+------------------------------------------------------------
+large-v3       3.5%   24/30       8.45s    9.05s     2/30  
+medium         3.8%   24/30       4.67s    4.94s     0/30  
+small          4.2%   24/30       1.64s    1.69s    20/30  
+base          10.7%   18/30       0.57s    0.62s     0/30  
+tiny          26.4%    9/30       0.28s    0.29s    24/30  
+
+LA MEDIANA NO BASTA: el §5.5 se siente en el PEOR caso, no en
+el tipico, asi que p90 esta ahi al lado a proposito.
+
+DONDE FALLA CADA UNO (ordenes con WER > 0)
+
+  base: 12 de 30
+    WER 100.0%  «cancela»
+                 -> 'Cancella'
+    WER 40.0%  «cuantos archivos hay en Descargas»
+                 -> '¿Cuántos son tios hay en descargas?'
+    WER 37.5%  «escribe hola mundo en el bloc de notas»
+                 -> 'Escribe a la Mundo en el blog de Notas.'
+    WER 30.0%  «crea una carpeta que se llame Facturas dos mil veintiseis»
+                 -> 'Crea una carpeta que se llame facturas 2026.'
+    WER 20.0%  «abre el bloc de notas»
+                 -> 'Abre el vlog de notas.'
+    WER 16.7%  «renombra el archivo captura punto png»
+                 -> 'Renombra el archivo captura.png'
+    WER 14.3%  «mueve los pdf de Descargas a Documentos»
+                 -> 'Mueve los PDFs de descargas a documentos'
+    WER 14.3%  «haz una captura y guardala en Imagenes»
+                 -> 'Has una captura y guardala en imágenes.'
+
+  large-v3: 6 de 30
+    WER 30.0%  «crea una carpeta que se llame Facturas dos mil veintiseis»
+                 -> 'Crea una carpeta que se llame facturas 2026'
+    WER 20.0%  «abre el bloc de notas»
+                 -> 'Abre el blog de notas.'
+    WER 16.7%  «renombra el archivo captura punto png»
+                 -> 'Renombra el archivo captura.png'
+    WER 14.3%  «mueve los pdf de Descargas a Documentos»
+                 -> 'Mueve los PDFs de descargas a documentos.'
+    WER 12.5%  «escribe hola mundo en el bloc de notas»
+                 -> 'Escribe Hola Mundo en el blog de notas.'
+    WER 11.1%  «abre el bloc de notas y escribe informe listo»
+                 -> 'Abre el blog de notas y escribe informe listo.'
+
+  medium: 6 de 30
+    WER 40.0%  «crea una carpeta que se llame Facturas dos mil veintiseis»
+                 -> 'Crean una carpeta que se llame Facturas 2026'
+    WER 20.0%  «abre el bloc de notas»
+                 -> 'Abre el blog de notas.'
+    WER 16.7%  «renombra el archivo captura punto png»
+                 -> 'Renombra el archivo captura.png'
+    WER 14.3%  «mueve los pdf de Descargas a Documentos»
+                 -> 'Mueve los PDFs de descargas a documentos'
+    WER 12.5%  «escribe hola mundo en el bloc de notas»
+                 -> 'Escribe hola mundo en el blog de notas.'
+    WER 11.1%  «abre el bloc de notas y escribe informe listo»
+                 -> 'Abre el blog de notas y escribe informe listo'
+
+  small: 6 de 30
+    WER 40.0%  «crea una carpeta que se llame Facturas dos mil veintiseis»
+                 -> 'Crean una carpeta que se llame Facturas 2026.'
+    WER 22.2%  «abre el bloc de notas y escribe informe listo»
+                 -> 'Abre el blog de notas y escribe y informe listo.'
+    WER 20.0%  «abre el bloc de notas»
+                 -> 'Abre el blog de notas'
+    WER 16.7%  «renombra el archivo captura punto png»
+                 -> 'Renombra el archivo captura.png'
+    WER 14.3%  «mueve los pdf de Descargas a Documentos»
+                 -> 'Mueve los PDFs de descargas a documentos.'
+    WER 12.5%  «escribe hola mundo en el bloc de notas»
+                 -> 'Escribe Hola Mundo en el blog de Notas'
+
+  tiny: 21 de 30
+    WER 100.0%  «cancela»
+                 -> 'cáncerlo'
+    WER 100.0%  «para»
+                 -> '¡Vara!'
+    WER 66.7%  «no, ese no»
+                 -> '¡No! ¡Es en no!'
+    WER 57.1%  «dime que archivos PDF tengo en Documentos»
+                 -> 'Dime que hay archivos para de Efe tengo en documentos.'
+    WER 57.1%  «haz una captura y guardala en Imagenes»
+                 -> 'Hace una captura y guarda la animágenes.'
+    WER 40.0%  «haz una captura de pantalla»
+                 -> 'Asuna captura de pantalla'
+    WER 40.0%  «cierra la ventana del navegador»
+                 -> 'si era la ventana del navegador'
+    WER 40.0%  «cuantos archivos hay en Descargas»
+                 -> '¡Cuántos archivos hay en las cargas!'
+
+ADR-0006 se cierra con la tabla de arriba, no con la impresion:
+el modelo elegido va en voz.stt.modelo de config/jarvis.yaml.

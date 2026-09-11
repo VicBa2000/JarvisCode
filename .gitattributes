@@ -1,0 +1,32 @@
+# Normalizacion de finales de linea, con una excepcion que importa.
+* text=auto
+
+# >>> LOS WAV SON BINARIOS Y HAY QUE DECIRLO <<<
+# En Windows `core.autocrlf` reescribe finales de linea, y en un binario
+# eso no es una molestia: es corrupcion silenciosa. `eval/audio_*/` son
+# 30 ordenes reales, 30 avisos, 12 tomas de silencio y 112 "hey jarvis"
+# grabados por el usuario, y son irreemplazables. Marcarlos
+# explicitamente cuesta una linea.
+*.wav binary
+*.onnx binary
+*.pem binary
+
+# >>> Y LAS FUENTES TAMBIEN, POR LA MISMA RAZON EXACTA <<<
+# 17 woff2 (612 KB) que sirve el puente desde 127.0.0.1. Sin esta linea
+# caen bajo `* text=auto`, o sea que dependen de una heuristica en vez de
+# una declaracion -- y si falla, el sintoma es una pagina con la fuente de
+# reserva, que se parece bastante a "todavia no ha cargado".
+*.woff2 binary
+
+# Las trazas se comparan byte a byte contra lo que salio del binario de
+# Claude Code: si git les cambia los finales de linea, dejan de ser lo
+# que se capturo.
+*.jsonl text eol=lf
+
+# >>> Y LOS `.bat` NECESITAN CRLF, DECLARADO Y NO ADIVINADO <<<
+# `cmd.exe` lee el archivo mientras lo ejecuta y con finales de linea
+# Unix se le descoloca la posicion: un `goto` puede saltar a media linea.
+# El sintoma no es un error claro, es un script que hace la mitad. Bajo
+# `* text=auto` esto depende de una heuristica; aqui se dice.
+*.bat text eol=crlf
+*.cmd text eol=crlf

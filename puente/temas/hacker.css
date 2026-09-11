@@ -1,0 +1,372 @@
+/* ============================================================
+   TEMA TERMINAL -- la maqueta, no la paleta.
+   ============================================================
+   Los colores estan en `tema.css`. Aqui esta lo OTRO: lo que hace que
+   esto se sienta una consola de verdad y no una web oscura.
+
+   La frase con la que se comprueba si esto se cumplio:
+   >>> "Rejilla de caracteres, filetes en vez de tarjetas, y todo el
+        estado en una barra." Si algo flota, no es este tema. <<<
+
+   Tres decisiones y su porque:
+
+   1. NO HAY TARJETAS. `.vidrio` deja de ser cristal -- sin desenfoque,
+      sin resplandor interior, sin las cuatro esquinas marcadas -- y se
+      queda en un filete de 1 px. Los paneles se pegan unos a otros y
+      se separan con ese filete, sin hueco. El hueco entre cajas es lo
+      que hace que una pantalla parezca un tablero de widgets; un
+      terminal reparte la pantalla entera y no deja fondo a la vista.
+
+   2. LA CABECERA SE INVIERTE Y VA A SANGRE. Verde macizo con texto
+      negro, de borde a borde, como la linea de estado de tmux o de vi.
+      Es el gesto que mas separa este tema del original, y es barato:
+      una barra invertida se lee como "esto es una herramienta", no
+      como "esto es una aplicacion bonita".
+
+   3. SE VA EL BISEL Y SE VA EL BARRIDO. Son atrezzo de cabina de nave,
+      que es exactamente la estetica del tema `jarvis`. Aqui sobran: lo
+      que da atmosfera son las scanlines y el grano, que ya vienen
+      subidos desde `tema.css` (.08 y .11 contra .055 y .09).
+
+   >>> LO QUE NO SE ESCONDE <<<
+   Nada que lleve `data-ensena`. Lo unico que este archivo oculta es
+   `.reticula`, que es un dibujo: el mismo estado lo dicen `#estadoVoz`,
+   `#instruccion` y `#onda`, que se quedan los tres. Si algun dia hay
+   que esconder algo que SI informa, el test de
+   `test_ningun_tema_esconde_una_pieza_obligatoria` lo va a impedir, y
+   hace bien.
+   ============================================================ */
+
+/* --- 0. base ------------------------------------------------------ */
+:root[data-tema="hacker"] body {
+  font-family: var(--cuerpo);
+  font-size: var(--texto-base);
+  line-height: 1.45;
+}
+
+/* El atrezzo de cabina, fuera. */
+:root[data-tema="hacker"] #bisel,
+:root[data-tema="hacker"] #barrido { display: none; }
+
+/* Los halos redondos de `body::before` son de la cabina; aqui el fondo
+   es negro plano y la textura la ponen las scanlines. */
+:root[data-tema="hacker"] body::before {
+  background: linear-gradient(180deg, var(--fondo), var(--fondo-medio) 50%, var(--fondo-bajo));
+}
+
+/* --- 1. el cristal deja de ser cristal ---------------------------- */
+:root[data-tema="hacker"] .vidrio {
+  background: transparent;
+  backdrop-filter: none;
+  border: 1px solid var(--linea);
+  box-shadow: none;
+}
+/* Las cuatro esquinas marcadas son la firma visual del tema `jarvis`. */
+:root[data-tema="hacker"] .vidrio::before,
+:root[data-tema="hacker"] .vidrio::after { display: none; }
+
+/* --- 2. la cabecera: linea de estado invertida, a sangre ---------- */
+:root[data-tema="hacker"] header.vidrio {
+  margin: 0; height: 26px; padding: 0; gap: 0;
+  background: var(--cian); border: 0;
+}
+:root[data-tema="hacker"] header.vidrio .marca { gap: 7px; padding: 0 10px;
+  background: var(--cian-alto); height: 26px; }
+:root[data-tema="hacker"] header.vidrio .marca b { font-size: 12px; letter-spacing: .12em;
+  color: var(--fondo); text-shadow: none; }
+:root[data-tema="hacker"] header.vidrio .marca svg { display: none; }
+:root[data-tema="hacker"] header.vidrio .separa { display: none; }
+:root[data-tema="hacker"] header.vidrio .meta { padding: 0 10px; font-size: 11.5px;
+  letter-spacing: .02em; color: var(--fondo); font-weight: 600; }
+:root[data-tema="hacker"] header.vidrio .meta b { color: var(--fondo); font-weight: 600; }
+:root[data-tema="hacker"] header.vidrio .pestanas { margin-left: auto; gap: 0; }
+:root[data-tema="hacker"] .pestana {
+  height: 26px; padding: 0 12px; border: 0; font-size: 11.5px;
+  letter-spacing: .1em; font-weight: 600; color: var(--pie-tecnico);
+  background: rgba(var(--sombra-rgb),.28);
+}
+:root[data-tema="hacker"] .pestana:hover { color: var(--fondo); }
+:root[data-tema="hacker"] .pestana[aria-selected="true"] {
+  background: var(--cian-alto); color: var(--fondo); box-shadow: none;
+}
+:root[data-tema="hacker"] #salud {
+  margin-left: 0; height: 26px; padding: 0 10px; border: 0;
+  background: var(--pie-tecnico); color: var(--texto);
+  font-size: 11.5px; letter-spacing: .1em; box-shadow: none;
+}
+
+/* >>> Y EL REPOSO TIENE QUE VERSE DISTINTO DE EN MARCHA <<<
+   (2026-09-09.) La regla de arriba pone fondo y color a `#salud` a
+   secas, y gana por especificidad a `#salud.quieto` de la pagina: una
+   sesion sin abrir salia con el verde encendido de una trabajando.
+   Subir la especificidad alla seria una carrera que el tema siempre
+   gana, asi que lo dice el tema, que es de quien es la identidad. */
+:root[data-tema="hacker"] #salud.quieto {
+  background: transparent; color: var(--tenue);
+}
+
+/* >>> Y ESTE TEMA LLEVABA CIEGO EL SEMAFORO ENTERO <<<
+   Medido el 2026-09-09 en los cuatro: aqui `en marcha`, `te espera`
+   (duda) y `sesion caida` (mal) daban EL MISMO color -- 140,255,180
+   sobre 23,81,47 --, porque la regla de arriba pone `color` y
+   `background` sobre `#salud` a secas y gana a las `#salud.mal` /
+   `#salud.duda` de la pagina. O sea que el rotulo que dice si Jarvis
+   esta vivo no cambiaba nunca de color en este tema. No lo cazaba
+   ningun test: la clase se ponia bien, la pintaba otro. */
+:root[data-tema="hacker"] #salud.duda {
+  background: rgba(var(--ambar-rgb),.16); color: var(--ambar-alto);
+}
+:root[data-tema="hacker"] #salud.mal {
+  background: rgba(var(--rojo-rgb),.16); color: var(--rojo-claro);
+}
+
+/* --- 3. el nucleo: cuatro columnas de rejilla, no una cabina ------ */
+:root[data-tema="hacker"] #nucleo {
+  margin: 0; padding: 10px 14px 8px;
+  /* >>> EL `gap: 0` ERA DEMASIADO TERMINAL <<<
+     Reportado por el usuario: "DORMIDO" y `di "hey jarvis"` salian
+     rozando el nombre del microfono. Con `gap: 0` las tres columnas se
+     tocan, y la de la izquierda lleva valores largos que se recortan
+     con puntos suspensivos JUSTO en el borde -- o sea que el recorte y
+     la palabra siguiente quedaban pegados y parecian una sola cosa.
+     22 px de separacion de columna, y ninguno de fila: sigue sin haber
+     hueco vertical, que es lo que hace la densidad de terminal. */
+  gap: 0 22px;
+  grid-template-columns: 300px minmax(0,1fr) 214px;
+  border: 0; border-bottom: 1px solid var(--linea);
+}
+/* Un dibujo, no un dato. Lo que informa se queda entero. */
+:root[data-tema="hacker"] .reticula { display: none; }
+/* Sin reticula, centrar deja el estado flotando en mitad de la
+   franja. Va a la izquierda, pegado a los rotulos. */
+:root[data-tema="hacker"] .franja { justify-content: flex-start; }
+:root[data-tema="hacker"] #estadoVoz {
+  font-family: var(--titular); font-size: 46px; font-weight: 400;
+  line-height: .96; text-shadow: 0 0 18px rgba(var(--cian-rgb),.55);
+}
+:root[data-tema="hacker"] #instruccion { font-size: 13px; letter-spacing: .1em; }
+:root[data-tema="hacker"] .telemetria { gap: 1px; font-size: 12px; }
+:root[data-tema="hacker"] .telemetria .guion { display: none; }
+:root[data-tema="hacker"] .telemetria .k { width: 92px; }
+:root[data-tema="hacker"] .telemetria.der .k { width: auto; flex-grow: 1; }
+:root[data-tema="hacker"] .rotulo { font-size: 11px; letter-spacing: .2em; text-shadow: none; }
+
+/* --- 4. el cuerpo: dos paneles pegados, separados por un filete --- */
+/* >>> EL `0` DE ABAJO SE QUEDO EN 10, Y LO VIO EL USUARIO (2026-09-04) <<<
+   El usuario vio que en el tema verde de terminal la consola queda muy
+   abajo y no se aprecia del todo su final. MEDIDO en los cuatro temas contra
+   el servidor real (`-m eval.mirar_las_columnas`), mirando donde acaba
+   la ULTIMA TINTA en una ventana de 908 px: jarvis 12 px de aire,
+   despacho 20, nexo 7 y **hacker 0**, con el `>_` de la caja de escribir
+   clavado en el ultimo pixel. El unico de los cuatro sin un solo punto
+   de aire debajo -- y el mismo margen se llevaba por delante el pie de
+   la CARGA, que tambien acababa en 908.
+   El `margin: 0` es la identidad del tema y por eso se queda a los
+   lados: lo que hace que esto parezca una herramienta es que la cabecera
+   y los paneles vayan a sangre. Abajo no hay nada que ir a sangre
+   CONTRA: hay el borde de la ventana, y una LETRA pegada a el se lee
+   como una letra cortada, no como una fila a sangre. (Que la CAJA toque
+   el borde no es el problema -- en `nexo` la franja del rail lo hace a
+   proposito y su contenido lleva su `padding` dentro.) */
+:root[data-tema="hacker"] #cuerpo {
+  margin: 0 0 10px; gap: 0; grid-template-columns: minmax(0,1fr) 282px;
+}
+:root[data-tema="hacker"] #izquierda { border: 0; border-right: 1px solid var(--linea); }
+:root[data-tema="hacker"] #flujo { padding: 8px 14px; gap: 5px; }
+:root[data-tema="hacker"] .linea { flex-direction: row; gap: 10px; align-items: baseline; }
+:root[data-tema="hacker"] .linea .quien {
+  flex: none; width: 76px; font-size: 11.5px; letter-spacing: .08em;
+}
+:root[data-tema="hacker"] .linea .cuerpo { flex-grow: 1; min-width: 0; font-size: 12.5px; }
+:root[data-tema="hacker"] .linea.herramienta .cuerpo,
+:root[data-tema="hacker"] .linea.resultado .cuerpo {
+  border: 0; border-left: 2px solid rgba(var(--cian-rgb),.35); padding: 3px 8px;
+}
+/* >>> AQUI LOS TRES TROZOS VAN PEGADOS Y MACIZOS <<< `padding: 0` y
+   `gap: 0` es la identidad de este tema: una barra de estado a sangre,
+   sin aire entre las piezas. Desde que la caja crece con lo que
+   escribes (2026-09-03) eso obliga a `stretch`: con el `center` que
+   hereda de la hoja base, un `>_` de 34 px al lado de una caja de dos
+   renglones deja franjas de fondo arriba y abajo del bloque verde, y en
+   un tema donde todo va a sangre eso no se lee como un centrado -- se
+   lee como algo roto. Se vio en la captura, no en un test.
+   El `stretch` NO toca la caja: `align-items` solo estira lo que tiene
+   la altura en `auto`, y a la caja se la pone el JS. O sea que la caja
+   manda el alto de la fila y los otros dos la siguen, que es justo el
+   orden que se quiere. */
+:root[data-tema="hacker"] #pie {
+  padding: 0; gap: 0; background: transparent; align-items: stretch;
+}
+:root[data-tema="hacker"] #pie .prompt {
+  /* `min-height` y no `height`, y el centrado con flex y no con
+     `line-height`: un `line-height: 34px` fijo dejaria el `>_` clavado
+     arriba en cuanto la fila crezca. */
+  padding: 0 10px; min-height: 34px; display: flex; align-items: center;
+  background: rgba(var(--cian-rgb),.12); font-weight: 600; text-shadow: none;
+}
+:root[data-tema="hacker"] #texto { padding: 0 10px; font-size: 12.5px; }
+:root[data-tema="hacker"] #mandar {
+  min-height: 34px; height: auto; padding: 0 16px; border: 0;
+  background: var(--cian); color: var(--fondo);
+  font-family: var(--cuerpo); font-size: 12px; letter-spacing: .2em;
+  box-shadow: none;
+}
+:root[data-tema="hacker"] #mandar:hover { background: var(--cian-alto); }
+
+/* --- 5. el rail: sigue siendo columna, pero sin cajas ------------- */
+:root[data-tema="hacker"] #rail { gap: 0; }
+:root[data-tema="hacker"] .modulo {
+  padding: 8px 12px 10px; gap: 4px;
+  border: 0; border-bottom: 1px solid var(--linea);
+}
+:root[data-tema="hacker"] .modulo .rotulo {
+  margin: -8px -12px 4px; padding: 6px 12px 5px;
+  border-bottom: 1px solid var(--linea);
+}
+:root[data-tema="hacker"] .canal { font-size: 12px; gap: 8px; }
+:root[data-tema="hacker"] .canal .led {
+  width: 7px; height: 7px; box-shadow: none;
+}
+:root[data-tema="hacker"] .cifra {
+  font-family: var(--titular); font-size: 38px; font-weight: 400;
+  text-shadow: none;
+}
+:root[data-tema="hacker"] body.cabina .barra { height: 8px; background: rgba(var(--cian-rgb),.10); }
+:root[data-tema="hacker"] body.cabina .barra > i { height: 8px; background: var(--cian); box-shadow: none; }
+:root[data-tema="hacker"] body.cabina .barra::after {
+  background-image: repeating-linear-gradient(90deg, rgba(var(--fondo-rgb),.9) 0 2px, transparent 2px 5px);
+}
+:root[data-tema="hacker"] .dato { font-size: 12px; }
+
+/* --- 6. LA PUERTA: sigue siendo lo mas visible de la pantalla ----- */
+:root[data-tema="hacker"] #pendientes { margin: 0; gap: 0; }
+:root[data-tema="hacker"] .puerta {
+  padding: 0 0 13px;
+  backdrop-filter: none;
+  border: 0; border-bottom: 1px solid var(--linea);
+  box-shadow: none;
+  /* La caja no late; lo que se mueve es la cinta. Un panel que
+     respira es de la cabina, no de un terminal. */
+  animation: none;
+}
+:root[data-tema="hacker"] .puerta::before { height: 4px; }
+:root[data-tema="hacker"] .puerta h3 {
+  margin: 11px 14px 8px; font-family: var(--titular);
+  font-size: 34px; font-weight: 400; line-height: 1;
+  text-shadow: 0 0 20px rgba(var(--ambar-rgb),.5);
+}
+:root[data-tema="hacker"] .puerta .motivo {
+  margin: 0 14px 8px; font-size: 11px; letter-spacing: .22em;
+}
+:root[data-tema="hacker"] .puerta .enunciado { margin: 0 14px 8px; font-size: 13px; }
+:root[data-tema="hacker"] .puerta .cuerpo { margin: 0 14px 8px; font-size: 13px; }
+:root[data-tema="hacker"] .puerta .crudo {
+  margin: 0 14px 11px; padding: 9px 12px; font-size: 12.5px; line-height: 1.55;
+}
+:root[data-tema="hacker"] .puerta .botones { margin: 0 14px; gap: 8px; }
+:root[data-tema="hacker"] .puerta button {
+  flex: 1 1 0; height: auto; min-height: 40px; padding: 8px 12px;
+  font-family: var(--cuerpo); font-size: 13px; letter-spacing: .16em;
+}
+:root[data-tema="hacker"] .puerta button.si { box-shadow: none; }
+
+/* --- 7. la vista de ajustes, dentro de la consola ----------------- */
+:root[data-tema="hacker"] #vistaAjustes { margin: 0; border: 0; background: transparent; }
+
+/* ============================================================
+   AJUSTES -- la misma pagina, vista como un archivo de configuracion.
+   Secciones con nombre entre corchetes, pares alineados en columna, y
+   el porque de cada numero como un comentario. No es adorno: es la
+   forma en la que esta persona ya edita cosas.
+   ============================================================ */
+:root[data-tema="hacker"] .hoja { max-width: 1000px; padding: 14px 18px 70px; }
+:root[data-tema="hacker"] .hoja::before {
+  content: '# jarvis.conf'; display: block; margin-bottom: 12px;
+  font-family: var(--mono); font-size: 12.5px; color: var(--pie-tecnico);
+}
+:root[data-tema="hacker"] header h1 { font-size: 15px; letter-spacing: .16em; text-shadow: none; }
+:root[data-tema="hacker"] .intro { font-size: 13px; margin-bottom: 16px; }
+
+:root[data-tema="hacker"] section {
+  margin-bottom: 18px; padding: 0;
+  background: transparent; border: 0; box-shadow: none;
+}
+:root[data-tema="hacker"] section > h2 {
+  font-family: var(--mono); font-size: 13px; font-weight: 600;
+  letter-spacing: .06em; color: var(--ambar);
+}
+:root[data-tema="hacker"] section > h2::before { content: '['; }
+:root[data-tema="hacker"] section > h2::after  { content: ']'; }
+:root[data-tema="hacker"] section > .nota {
+  margin-bottom: 8px; font-family: var(--mono); font-size: 12.5px;
+  color: var(--pie-tecnico);
+}
+:root[data-tema="hacker"] section > .nota::before { content: '#   '; }
+
+:root[data-tema="hacker"] .fila {
+  padding: 3px 0; border: 0;
+  display: grid; grid-template-columns: 300px minmax(0,1fr); gap: 0 12px;
+  align-items: baseline;
+}
+:root[data-tema="hacker"] .fila > label.titulo {
+  margin: 0; font-size: 13px; color: var(--texto);
+}
+:root[data-tema="hacker"] .fila > label.titulo::before { content: '  '; }
+:root[data-tema="hacker"] .fila .ayuda {
+  grid-column: 2; margin: 0 0 4px; font-family: var(--mono);
+  font-size: 12px; color: var(--pie-tecnico);
+}
+:root[data-tema="hacker"] .fila .ayuda::before { content: '# '; }
+:root[data-tema="hacker"] .control { grid-column: 2; gap: 8px; }
+/* El "¿por que?" es hijo directo de `.fila`, asi que sin esto la
+   rejilla lo auto-coloca en la columna 1 -- debajo del rotulo y no
+   debajo del control, que es donde se busca. */
+:root[data-tema="hacker"] .fila > details.porque { grid-column: 2; }
+
+:root[data-tema="hacker"] select,
+:root[data-tema="hacker"] input[type=text],
+:root[data-tema="hacker"] input[type=number],
+:root[data-tema="hacker"] input[type=password] {
+  height: 28px; min-width: 240px; padding: 0 8px; font-size: 12.5px;
+  background: rgba(var(--cian-rgb),.10); border: 1px solid rgba(var(--cian-rgb),.28);
+}
+:root[data-tema="hacker"] textarea { padding: 7px 8px; font-size: 12.5px;
+  background: rgba(var(--cian-rgb),.10); }
+
+/* El interruptor se dibuja como una casilla de texto: [x] / [ ]. */
+:root[data-tema="hacker"] .palanca { width: 30px; height: 20px; }
+:root[data-tema="hacker"] .palanca .pista {
+  border-radius: 0; background: transparent; border: 1px solid rgba(var(--cian-rgb),.4);
+}
+:root[data-tema="hacker"] .palanca .bola {
+  top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 0;
+  background: transparent;
+}
+:root[data-tema="hacker"] .palanca input:checked + .pista { background: transparent; }
+:root[data-tema="hacker"] .palanca input:checked + .pista .bola {
+  left: 3px; background: var(--cian); box-shadow: none;
+}
+:root[data-tema="hacker"] .palancaTexto { font-size: 12px; letter-spacing: .06em; }
+
+:root[data-tema="hacker"] button {
+  height: 28px; padding: 0 14px; border-radius: 0;
+  font-family: var(--cuerpo); font-size: 12px; letter-spacing: .12em;
+}
+:root[data-tema="hacker"] body.panel .barra .interior { max-width: 1000px; }
+:root[data-tema="hacker"] body.panel .barra { padding: 8px 18px; }
+:root[data-tema="hacker"] #guardar { background: var(--cian); color: var(--fondo); border-color: var(--cian); }
+
+:root[data-tema="hacker"] .zona { padding: 3px 0; border: 0; gap: 10px; }
+:root[data-tema="hacker"] .zona .quePuede { width: 118px; font-size: 12px; letter-spacing: 0; }
+:root[data-tema="hacker"] .zona .ruta { font-size: 12.5px; }
+:root[data-tema="hacker"] .zona .motivo,
+:root[data-tema="hacker"] .zona .coste { font-family: var(--mono); font-size: 12px; }
+:root[data-tema="hacker"] .zona .motivo::before,
+:root[data-tema="hacker"] .zona .coste::before { content: '# '; }
+:root[data-tema="hacker"] .leyenda { padding: 8px 12px; border-radius: 0; }
+:root[data-tema="hacker"] details.porque > summary { font-size: 12px; letter-spacing: .06em; }
+:root[data-tema="hacker"] details.porque .cuerpo { padding: 8px 12px; font-size: 12.5px; }
+
+/* El <details> del detalle tecnico ocupa el sitio que ocupaba `.cuerpo`
+   cuando colgaba directo de `.linea`. Aqui nace abierto y sin resumen. */
+:root[data-tema="hacker"] .linea .detalle { flex-grow: 1; min-width: 0; }

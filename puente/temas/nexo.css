@@ -1,0 +1,422 @@
+/* ============================================================
+   TEMA NEXO -- la maqueta, no la paleta.
+   ============================================================
+   Los colores estan en `tema.css`. Aqui esta la composicion.
+
+   La frase con la que se comprueba si esto se cumplio:
+   >>> "El contraste lo pone la tipografia y el filete: negro tinta
+        contra casi blanco, cifras en peso 300, cero sombras." <<<
+
+   Tres decisiones y su porque:
+
+   1. LAS PESTAÑAS SE VAN A UNA COLUMNA. `body` deja de ser una pila
+      vertical y pasa a tener una barra lateral de 88 px en tinta, con
+      CONSOLA y AJUSTES escritas en dos lineas. Es el gesto que separa
+      este tema de los otros tres de un vistazo, y ademas devuelve 50
+      px de alto a la pantalla, que es donde vive el registro.
+
+   2. NADA TIENE SOMBRA, RADIO NI DEGRADADO. Una caja se dibuja con un
+      filete de 1 px o no se dibuja. Todo el contraste lo tiene que
+      hacer la letra: un 700 muy apretado para los rotulos contra un
+      300 muy abierto para las cifras. Si aqui entra un resplandor, el
+      tema deja de tener argumento.
+
+   3. EL RAIL DERECHO SE VA AL PIE. Los cuatro modulos de estado dejan
+      de ser una columna de 372 px y pasan a ser una franja horizontal
+      bajo el registro, dividida con filetes. El registro gana todo el
+      ancho, que es lo que uno mira de verdad.
+
+   >>> LO QUE NO SE ESCONDE <<<
+   Nada que lleve `data-ensena`. Igual que en `hacker.css`, lo unico
+   que se oculta es `.reticula`, que es un dibujo.
+   ============================================================ */
+
+/* --- 0. base ------------------------------------------------------ */
+:root[data-tema="nexo"] body {
+  font-family: var(--cuerpo);
+  font-size: var(--texto-base);
+  line-height: 1.5;
+  /* >>> LA BARRA LATERAL ES `header` FIJO, NO UN GRID <<<
+     El primer intento puso `body` en grid de dos columnas. Se ve bien
+     de entrada y esta mal: `body` tiene siete hijos y solo tres van a
+     la columna 2, asi que `#nucleo`, `#pendientes` y `#cuerpo` caen
+     cada uno en una fila IMPLICITA distinta -- y las implicitas son
+     `auto`, o sea que `#cuerpo`, que es el que tiene que estirarse
+     para llenar la ventana, se queda del alto de su contenido y el
+     registro deja de tener scroll propio.
+     Con `header` fijo y un hueco a la izquierda, `body` sigue siendo la
+     pila vertical que era y no hay filas que repartir. */
+}
+/* El hueco de la barra es SOLO de la consola: los ajustes van dentro de
+   un iframe, no tienen barra, y ahi 88 px serian un margen vacio. */
+:root[data-tema="nexo"] body.cabina { padding-left: 88px; }
+:root[data-tema="nexo"] #bisel,
+:root[data-tema="nexo"] #barrido { display: none; }
+:root[data-tema="nexo"] body::before { background: var(--fondo); }
+
+:root[data-tema="nexo"] .vidrio {
+  background: var(--fondo-medio);
+  backdrop-filter: none;
+  border: 1px solid var(--linea);
+  border-radius: 0;
+  box-shadow: none;
+}
+:root[data-tema="nexo"] .vidrio::before,
+:root[data-tema="nexo"] .vidrio::after { display: none; }
+
+/* --- 1. la cabecera se pone de pie -------------------------------- */
+:root[data-tema="nexo"] header.vidrio {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 88px; z-index: 4;
+  margin: 0; height: auto; padding: 22px 0 18px; gap: 0;
+  flex-direction: column; align-items: center;
+  background: var(--cian); border: 0; border-radius: 0;
+}
+:root[data-tema="nexo"] header.vidrio .marca { flex-direction: column; gap: 0; }
+:root[data-tema="nexo"] header.vidrio .marca b { display: none; }
+:root[data-tema="nexo"] header.vidrio .marca svg { stroke: var(--fondo); filter: none; }
+:root[data-tema="nexo"] header.vidrio .separa { display: none; }
+/* NODE, CUOTA y COSTE bajan al pie de la barra: siguen visibles, pero
+   dejan de competir por la fila de arriba. */
+:root[data-tema="nexo"] header.vidrio .meta {
+  order: 7; width: 76px; margin-top: 10px; text-align: center;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .04em;
+  color: var(--pie-tecnico); word-break: break-word;
+}
+:root[data-tema="nexo"] header.vidrio .meta b { color: var(--halo-rgb); color: var(--muy-tenue); }
+:root[data-tema="nexo"] header.vidrio .pestanas {
+  order: 1; flex-direction: column; gap: 8px; margin: 34px 0 0;
+}
+:root[data-tema="nexo"] .pestana {
+  width: 56px; padding: 10px 0; text-align: center; border: 0;
+  font-family: var(--titular); font-size: 10px; font-weight: 500;
+  letter-spacing: .1em; line-height: 1.35; background: transparent;
+  color: var(--tenue);
+}
+:root[data-tema="nexo"] .pestana[aria-selected="true"] {
+  background: var(--fondo); color: var(--cian); font-weight: 700; box-shadow: none;
+}
+:root[data-tema="nexo"] #salud {
+  order: 6; margin: auto 0 0; padding: 6px 0; border: 0; background: transparent;
+  flex-direction: column; gap: 6px; width: 76px; text-align: center;
+  font-family: var(--titular); font-size: 9px; letter-spacing: .12em;
+  color: var(--tenue); box-shadow: none;
+}
+:root[data-tema="nexo"] #salud::before {
+  width: 9px; height: 9px; border-radius: 50%; box-shadow: none;
+  animation: none; background: var(--verde);
+}
+:root[data-tema="nexo"] #salud.mal::before  { background: var(--rojo); }
+:root[data-tema="nexo"] #salud.duda::before { background: var(--ambar); }
+/* El punto es el semaforo de este tema y nacia SIEMPRE verde, asi que
+   una sesion que no se ha abierto se veia igual de viva que una
+   trabajando. Verde es una respuesta, no el fondo del semaforo. */
+:root[data-tema="nexo"] #salud.quieto::before { background: var(--tenue); }
+
+/* El fondo fijo tapaba la barra: es `inset: 0` sobre la ventana entera,
+   y la barra ahora tambien es fija. Se le recorta el hueco. */
+:root[data-tema="nexo"] body::before,
+:root[data-tema="nexo"] body::after { left: 88px; }
+
+/* --- 2. el nucleo: tipografia, y las cifras en 300 ---------------- */
+:root[data-tema="nexo"] #nucleo {
+  margin: 0; padding: 30px 40px 22px;
+  /* >>> LA COLUMNA DEL MEDIO SE QUEDABA CORTA, Y SE NOTABA <<<
+     Reportado por el usuario: "ESCUCHANDO" se montaba encima de la
+     onda. Con 280 + 320 en los lados y 40 px de hueco, a la del medio
+     le quedaban 332 px para una palabra de ~253 px en Space Grotesk
+     700 a 46 px, mas 26 de hueco y 95 de onda: 374 px de contenido en
+     332. Y la palabra mas larga no es esa, es "PREGUNTANDO" (~290).
+     Se rebajan los lados y el hueco -- la columna derecha son cuatro
+     cifras, no necesitaba 320 -- y la del medio pasa a 466 px. La red
+     de seguridad, para cualquier otro ancho de ventana, esta en
+     `consola.html`: quien cede sitio es la onda, nunca la palabra. */
+  gap: 28px;
+  grid-template-columns: 230px minmax(0,1fr) 260px;
+  border: 0; border-bottom: 1px solid var(--linea);
+}
+:root[data-tema="nexo"] .reticula { display: none; }
+/* Sin reticula, centrar deja el estado flotando en mitad de la
+   franja. Va a la izquierda, pegado a los rotulos. */
+:root[data-tema="nexo"] .franja { justify-content: flex-start; }
+:root[data-tema="nexo"] #estadoVoz {
+  font-family: var(--titular); font-size: 46px; font-weight: 700;
+  letter-spacing: -.028em; line-height: 1.05; text-transform: lowercase;
+  text-shadow: none;
+}
+:root[data-tema="nexo"] #estadoVoz::first-letter { text-transform: uppercase; }
+:root[data-tema="nexo"] #instruccion {
+  font-size: 16px; letter-spacing: 0; color: var(--tenue); text-shadow: none;
+}
+:root[data-tema="nexo"] #ordinal {
+  font-family: var(--titular); font-size: 11px; font-weight: 500;
+  letter-spacing: .22em; color: var(--muy-tenue); text-shadow: none;
+}
+:root[data-tema="nexo"] #onda i { box-shadow: none; width: 4px; border-radius: 0; }
+:root[data-tema="nexo"] .telemetria { gap: 4px; font-family: var(--mono); font-size: 11.5px; }
+:root[data-tema="nexo"] .telemetria .guion { display: none; }
+:root[data-tema="nexo"] .telemetria .k {
+  font-family: var(--titular); font-weight: 500; letter-spacing: .16em; width: 96px;
+}
+:root[data-tema="nexo"] .telemetria.der .k { width: auto; flex-grow: 1; }
+:root[data-tema="nexo"] .telemetria.der .v {
+  font-family: var(--titular); font-size: 22px; font-weight: 300; letter-spacing: -.02em;
+}
+:root[data-tema="nexo"] .rotulo {
+  font-family: var(--titular); font-size: 11px; font-weight: 500;
+  letter-spacing: .22em; color: var(--muy-tenue); text-shadow: none;
+}
+
+/* --- 3. el cuerpo: una columna, y el rail al pie ------------------ */
+:root[data-tema="nexo"] #cuerpo {
+  margin: 0; gap: 0;
+  grid-template-columns: minmax(0,1fr);
+  grid-template-rows: minmax(0,1fr) auto;
+}
+:root[data-tema="nexo"] #izquierda { border: 0; }
+:root[data-tema="nexo"] #flujo { padding: 4px 40px 12px; gap: 0; }
+:root[data-tema="nexo"] .linea {
+  flex-direction: row; gap: 18px; align-items: baseline;
+  padding: 9px 0; border-top: 1px solid var(--linea);
+}
+:root[data-tema="nexo"] .linea:first-child { border-top: 0; }
+:root[data-tema="nexo"] .linea .quien {
+  flex: none; width: 84px; font-family: var(--titular);
+  font-size: 10.5px; font-weight: 700; letter-spacing: .14em;
+}
+:root[data-tema="nexo"] .linea .cuerpo { flex-grow: 1; min-width: 0; font-size: 16px; }
+:root[data-tema="nexo"] .linea.herramienta .cuerpo,
+:root[data-tema="nexo"] .linea.resultado .cuerpo {
+  border: 0; border-radius: 0; padding: 5px 11px; font-size: 12.5px;
+  background: var(--fondo-bajo);
+}
+:root[data-tema="nexo"] #pie {
+  padding: 14px 40px; gap: 16px; background: var(--fondo-medio);
+}
+:root[data-tema="nexo"] #pie .prompt { display: none; }
+:root[data-tema="nexo"] #texto { font-family: var(--cuerpo); font-size: 15.5px; }
+:root[data-tema="nexo"] #mandar {
+  height: 42px; padding: 0 26px; border: 0; border-radius: 0;
+  background: var(--cian); color: var(--fondo-medio);
+  font-family: var(--titular); font-size: 12.5px; font-weight: 700;
+  letter-spacing: .16em; box-shadow: none;
+}
+
+/* El rail: de columna de 372 px a franja horizontal de cuatro celdas. */
+:root[data-tema="nexo"] #rail {
+  flex-direction: row; gap: 0; overflow: visible;
+  border-top: 1px solid var(--linea); background: var(--fondo-medio);
+}
+/* >>> EL VISOR, ACOTADO, Y AQUI SI HACE FALTA (2026-09-03) <<<
+   En los otros tres el rail es una COLUMNA y darle el hueco sobrante al
+   visor sale gratis: lo que se desplaza son numeros quietos. Aqui el
+   rail es una FRANJA, o sea que su alto se lo quita al registro y su
+   ancho a la CARGA. Con el `min-height: 240px` de la pagina la franja
+   se comia el log, y con `1 1 auto` la CARGA quedaba tan estrecha que
+   "SEMANA GASTADA" salia en tres lineas. Se vio en la captura, no en un
+   test. */
+:root[data-tema="nexo"] #pov { flex: 2 1 0; min-height: 172px; }
+/* >>> Y AUN ASI CRECIA HACIA ARRIBA, HASTA COMERSE EL REGISTRO <<<
+   (2026-09-04.) Lo reporto el usuario: en el tema minimalista la ventana
+   de "ejecutandose" crece hacia arriba por como esta acomodado todo, y se
+   ve mal. MEDIDO contra el servidor real y con un
+   turno de verdad dentro (`-m eval.mirar_las_columnas`): la franja se
+   iba a 356 px y el REGISTRO se quedaba en **16 px de alto para 599 de
+   contenido**. O sea un renglon, y cortado.
+
+   Y la causa es la mitad que aqui faltaba de la regla que la pagina ya
+   tiene escrita: *"la altura la manda el HUECO, nunca el contenido"*.
+   En los otros tres el rail es una columna dentro de una fila `1fr`, o
+   sea que hay un hueco DEFINIDO y `.povCuerpo` se recorta contra el.
+   Aqui la fila del rail es `auto`, o sea que la manda el contenido -- y
+   `.povCuerpo` es `flex: 1 1 auto`, cuya base es su propio texto. Con
+   eso el visor aportaba al alto de la franja TODO lo que Claude llevara
+   escrito, y la franja se lo quitaba al registro por arriba. Su
+   `overflow-y: auto` no llegaba a disparar nunca: nada lo apretaba.
+
+   La base a CERO lo corta de raiz -- el texto deja de contar para el
+   alto --, y entonces manda el `min-height` de la pagina, que es
+   justamente el suelo que se puso el 3 para que el visor no se aplaste.
+   NO hay ningun numero nuevo aqui a proposito: un tope a ojo acertaria
+   con esta letra y fallaria con otra, que es el error que ya se pago al
+   fijar el alto del cuerpo del visor.
+   Despues: registro 83 px y el visor recortandose de verdad (174 px de
+   alto para 273 de texto, o sea que su barra de scroll por fin se usa).
+   Quien lo toque, que vuelva a correr la sonda. */
+:root[data-tema="nexo"] .povCuerpo { flex-basis: 0; }
+
+:root[data-tema="nexo"] .modulo {
+  flex: 1 1 0; min-width: 0; padding: 14px 24px; gap: 6px;
+  border: 0; border-left: 1px solid var(--linea);
+}
+:root[data-tema="nexo"] .modulo:first-child { border-left: 0; padding-left: 40px; }
+/* >>> LOS MCP PIDEN MAS ANCHO, Y ESTA MEDIDO (2026-09-07) <<<
+   Aqui la franja reparte `flex: 1 1 0` a todos, o sea partes iguales, y
+   eso vale mientras los rotulos los escribamos nosotros. Un servidor MCP
+   lo nombra quien escribio el `.mcp.json`: "claude.ai Google Calendar"
+   pide 203 px y la parte igual daba 102, asi que los tres de claude.ai
+   se recortaban al MISMO texto y quedaban tres renglones que se leen
+   igual. Con la letra de 13.5 px de este tema no hay recorte que lo
+   salve; lo que hace falta es sitio.
+   El precedente es el propio visor de arriba (`flex: 2 1 0`): en esta
+   franja, un modulo que necesita mas lo pide. Medido con
+   `-m eval.mirar_el_panel`, que ahora dice lo que cabe y lo que hace
+   falta. */
+:root[data-tema="nexo"] #modMcp { flex: 1.9 1 0; }
+/* >>> Y SU ALTO SE ACOTA, POR LA REGLA DE `povCuerpo` DE ARRIBA <<<
+   "La altura la manda el HUECO, nunca el contenido", y aqui la fila del
+   rail es `auto`. Cuantos servidores MCP tengas es un dato TUYO: con los
+   cinco de esta maquina el modulo se llevaba 20 px del registro (68 ->
+   48, medido con `-m eval.mirar_las_columnas`), y con doce se comeria la
+   franja entera. Eso es exactamente el visor de 2026-09-04 con otra
+   forma, y se corta igual: se acota la lista y la que sobra se alcanza
+   con su barra.
+   El tope va en `em` y no en pixeles a proposito -- la letra de `.canal`
+   cambia de tema a tema (15, 17, 20 y 23 px medidos), y un numero a ojo
+   acertaria con esta y fallaria con la siguiente. */
+:root[data-tema="nexo"] #listaMcp { max-height: 5.2em; overflow-y: auto; }
+:root[data-tema="nexo"] .canal { font-size: 13.5px; }
+:root[data-tema="nexo"] .canal .led {
+  width: 7px; height: 7px; border-radius: 50%; box-shadow: none;
+}
+:root[data-tema="nexo"] .cifra {
+  font-family: var(--titular); font-size: 26px; font-weight: 300;
+  letter-spacing: -.02em; text-shadow: none;
+}
+:root[data-tema="nexo"] body.cabina .barra { height: 3px; background: var(--fondo-bajo); }
+:root[data-tema="nexo"] body.cabina .barra > i { height: 3px; background: var(--cian); box-shadow: none; }
+:root[data-tema="nexo"] body.cabina .barra::after { display: none; }
+:root[data-tema="nexo"] .dato {
+  font-family: var(--titular); font-size: 10px; font-weight: 500; letter-spacing: .2em;
+}
+:root[data-tema="nexo"] .dato span:last-child {
+  font-size: 13px; font-weight: 700; letter-spacing: 0; color: var(--cian-alto);
+}
+
+/* --- 4. LA PUERTA: interrupcion a sangre, sin sombra -------------- */
+:root[data-tema="nexo"] #pendientes { margin: 0; gap: 0; }
+:root[data-tema="nexo"] .puerta {
+  padding: 0 0 22px;
+  background: var(--fondo-medio); backdrop-filter: none;
+  border: 0; border-bottom: 1px solid var(--linea);
+  box-shadow: none; animation: none;
+}
+:root[data-tema="nexo"] .puerta::before {
+  height: 3px; background-image: none; background: var(--ambar); animation: none;
+}
+:root[data-tema="nexo"] .puerta h3 {
+  margin: 20px 40px 6px; font-family: var(--titular);
+  font-size: 34px; font-weight: 700; letter-spacing: -.03em;
+  line-height: 1.1; text-shadow: none;
+}
+:root[data-tema="nexo"] .puerta .motivo {
+  margin: 0 40px 14px; font-family: var(--titular); font-size: 11px;
+  font-weight: 500; letter-spacing: .16em; text-transform: uppercase;
+  text-shadow: none;
+}
+:root[data-tema="nexo"] .puerta .enunciado { margin: 0 40px 12px; font-size: 16px; }
+:root[data-tema="nexo"] .puerta .cuerpo { margin: 0 40px 12px; font-size: 16px; }
+:root[data-tema="nexo"] .puerta .crudo {
+  margin: 0 40px 18px; padding: 12px 14px; font-size: 12.5px; line-height: 1.7;
+  border: 0; background: var(--fondo-bajo);
+}
+:root[data-tema="nexo"] .puerta .botones { margin: 0 40px; gap: 10px; }
+:root[data-tema="nexo"] .puerta button {
+  height: auto; min-height: 52px; padding: 12px 18px; border-radius: 0;
+  font-family: var(--titular); font-size: 15.5px; font-weight: 700;
+  letter-spacing: 0; text-align: left;
+}
+:root[data-tema="nexo"] .puerta button.si { box-shadow: none; }
+:root[data-tema="nexo"] .puerta button.espera { border-style: dashed; }
+:root[data-tema="nexo"] .puerta button .consecuencia {
+  display: block; margin-top: 2px; font-family: var(--cuerpo);
+  font-size: 13px; font-weight: 400;
+}
+
+:root[data-tema="nexo"] #vistaAjustes { margin: 0; border: 0; background: transparent; }
+
+/* ============================================================
+   AJUSTES -- dos columnas: el rotulo de la seccion a la izquierda, las
+   filas a la derecha bajo un filete de tinta. Es la maqueta de una
+   ficha tecnica, y aqui funciona porque el tema entero es filete.
+   ============================================================ */
+:root[data-tema="nexo"] .hoja { max-width: 900px; padding: 42px 40px 100px; }
+:root[data-tema="nexo"] header h1 {
+  font-family: var(--titular); font-size: 42px; font-weight: 700;
+  letter-spacing: -.032em; text-shadow: none;
+}
+:root[data-tema="nexo"] .intro { font-size: 16px; margin-bottom: 30px; }
+
+:root[data-tema="nexo"] section {
+  margin-bottom: 30px; padding: 0;
+  background: transparent; border: 0; box-shadow: none;
+  display: grid; grid-template-columns: 190px minmax(0,1fr); gap: 0 44px;
+}
+:root[data-tema="nexo"] section > h2 {
+  grid-column: 1; grid-row: 1; margin: 3px 0 0; align-self: start;
+  font-family: var(--titular); font-size: 11px; font-weight: 700;
+  letter-spacing: .2em; color: var(--cian-max);
+}
+:root[data-tema="nexo"] section > .nota {
+  grid-column: 1; grid-row: 2; margin: 4px 0 0; font-size: 13.5px;
+  /* Sin esto se centra en su fila, que es todo lo alto de un ajuste,
+     y la nota acaba flotando a media altura lejos de su rotulo. */
+  align-self: start;
+}
+:root[data-tema="nexo"] section > *:not(h2):not(.nota) { grid-column: 2; }
+:root[data-tema="nexo"] section > .fila:first-of-type { border-top: 1px solid var(--cian); }
+
+:root[data-tema="nexo"] .fila {
+  padding: 16px 0; border-top: 1px solid var(--linea);
+}
+:root[data-tema="nexo"] .fila > label.titulo {
+  font-family: var(--titular); font-size: 17px; font-weight: 500;
+  letter-spacing: -.012em;
+}
+:root[data-tema="nexo"] .fila .ayuda { font-size: 14px; margin-bottom: 10px; }
+
+:root[data-tema="nexo"] select,
+:root[data-tema="nexo"] input[type=text],
+:root[data-tema="nexo"] input[type=number],
+:root[data-tema="nexo"] input[type=password] {
+  height: 38px; border-radius: 0; font-family: var(--cuerpo); font-size: 15px;
+  background: var(--fondo-medio); border: 1px solid var(--cian);
+}
+:root[data-tema="nexo"] textarea {
+  border-radius: 0; font-family: var(--mono); font-size: 13px;
+  background: var(--fondo-medio); border: 1px solid var(--cian);
+}
+:root[data-tema="nexo"] .palanca { width: 50px; height: 28px; }
+:root[data-tema="nexo"] .palanca .pista { border-radius: 0; border-color: var(--muy-tenue); }
+:root[data-tema="nexo"] .palanca .bola { border-radius: 0; width: 22px; height: 22px; top: 2px; left: 2px; }
+:root[data-tema="nexo"] .palanca input:checked + .pista { background: var(--cian); }
+:root[data-tema="nexo"] .palanca input:checked + .pista .bola {
+  left: 25px; background: var(--fondo-medio); box-shadow: none;
+}
+:root[data-tema="nexo"] .palancaTexto {
+  font-family: var(--titular); font-size: 10px; font-weight: 500; letter-spacing: .16em;
+}
+:root[data-tema="nexo"] button {
+  height: 42px; padding: 0 24px; border-radius: 0;
+  font-family: var(--titular); font-size: 12.5px; font-weight: 700; letter-spacing: .16em;
+}
+:root[data-tema="nexo"] #guardar {
+  background: var(--cian); color: var(--fondo-medio); border-color: var(--cian);
+}
+:root[data-tema="nexo"] body.panel .barra { padding: 16px 40px; }
+:root[data-tema="nexo"] body.panel .barra .interior { max-width: 900px; }
+:root[data-tema="nexo"] .zona { padding: 13px 0; align-items: center; }
+:root[data-tema="nexo"] .zona .quePuede {
+  width: 92px; font-family: var(--titular); font-size: 10px;
+  font-weight: 700; letter-spacing: .14em;
+}
+:root[data-tema="nexo"] .zona .ruta { font-size: 13px; }
+:root[data-tema="nexo"] .cuando {
+  font-family: var(--titular); font-size: 10px; font-weight: 500; letter-spacing: .16em;
+}
+:root[data-tema="nexo"] .leyenda { border-radius: 0; }
+:root[data-tema="nexo"] details.porque > summary {
+  font-family: var(--titular); font-size: 10.5px; font-weight: 500; letter-spacing: .14em;
+}
+:root[data-tema="nexo"] .insignia { border-radius: 0; font-family: var(--titular); }
+
+:root[data-tema="nexo"] .linea .detalle { flex-grow: 1; min-width: 0; }

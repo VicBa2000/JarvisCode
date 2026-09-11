@@ -1,0 +1,224 @@
+# Politica de permisos por herramienta.
+#
+# politica:
+#   auto       -> ejecuta sin preguntar
+#   confirmar  -> pide confirmacion explicita antes de ejecutar
+#   prohibido  -> nunca se ejecuta
+#
+# Ninguna herramienta se ejecuta sin pasar por seguridad/permisos.py.
+# Las herramientas se implementan en la Fase 2; este archivo define la
+# politica desde ya para que nazcan con ella aplicada.
+
+herramientas:
+  fs.list:
+    habilitada: true
+    politica: auto
+    rutas_permitidas:
+      - "%USERPROFILE%\\Documents"
+      - "%USERPROFILE%\\Downloads"
+
+  fs.read:
+    habilitada: true
+    politica: auto
+    rutas_permitidas:
+      - "%USERPROFILE%\\Documents"
+      - "%USERPROFILE%\\Downloads"
+
+  fs.write:
+    habilitada: true
+    politica: confirmar
+    rutas_permitidas:
+      - "%USERPROFILE%\\Documents"
+      - "%USERPROFILE%\\Downloads"
+
+  fs.mkdir:
+    habilitada: true
+    politica: auto
+    rutas_permitidas:
+      - "%USERPROFILE%\\Downloads"
+
+  fs.move:
+    habilitada: true
+    politica: confirmar
+    rutas_permitidas:
+      - "%USERPROFILE%\\Downloads"
+
+  # ADR-0028 (2026-08-18). Mueve TODOS los archivos que casan con un
+  # patron. Existe porque «organiza Descargas por tipo» pedia un fs.move
+  # por archivo, y con 30 archivos el plan no cabe en max_tokens.
+  #
+  # `politica: confirmar` NO ES NEGOCIABLE, y por eso es una herramienta
+  # APARTE de `fs.move` en vez de un argumento suyo: si fuera argumento,
+  # poner `fs.move: auto` volveria automatico tambien el movimiento en
+  # bloque. Mover N archivos no es "lo mismo pero mas".
+  #
+  # La puerta pregunta con el RECUENTO y los NOMBRES que calcula el
+  # executor al expandir el patron, nunca con lo que diga el planner.
+  fs.move_many:
+    habilitada: true
+    politica: confirmar
+    rutas_permitidas:
+      - "%USERPROFILE%\\Downloads"
+
+  fs.delete:
+    habilitada: true
+    politica: confirmar
+    rutas_permitidas:
+      - "%USERPROFILE%\\Downloads"
+
+  shell.run:
+    habilitada: true
+    politica: confirmar
+    # Solo estos programas, y por NOMBRE. Ni encadenar (& | ; ` $()),
+    # ni redirigir (> <), ni expandir %VAR%: lo rechaza permisos.py.
+    allowlist: ["git", "python", "robocopy"]
+    # El directorio de trabajo es OBLIGATORIO y tiene que caer aqui
+    # dentro. Un comando sin decir donde se ejecuta es justo la
+    # ambiguedad que hace dano: `git clean -fd` en la carpeta
+    # equivocada. Sin esta lista, shell.run no puede ejecutar nada.
+    rutas_permitidas:
+      - "%USERPROFILE%\\Documents"
+      - "%USERPROFILE%\\Downloads"
+
+  app.launch:
+    habilitada: true
+    politica: confirmar
+    # Abrir un programa cualquiera ES ejecucion de codigo arbitrario, y
+    # saltaria la allowlist de shell.run. Por eso app.launch tiene la
+    # suya. Anade aqui los programas que quieras que Jarvis pueda abrir,
+    # por NOMBRE (no por ruta). Lista vacia = no abre nada.
+    allowlist:
+      - notepad
+      - calc
+      - explorer
+
+  app.focus:
+    habilitada: true
+    politica: auto
+
+  app.close:
+    habilitada: true
+    politica: confirmar
+
+  # Anadida en la Fase 4.1. Solo lee: enumera las ventanas abiertas y de
+  # que programa es cada una. No tiene allowlist a proposito, y conviene
+  # saber por que no es un descuido: LISTAR NO ES ACTUAR, y ademas no
+  # revela nada nuevo — desde la Fase 2, cuando app.focus no encuentra
+  # una ventana ya devuelve los titulos de las que si hay, justo para que
+  # el planner no se quede en un callejon sin salida. Esto lo convierte
+  # en una pregunta que se puede hacer, en vez de un premio por fallar.
+  # Los titulos son CONTENIDO OBSERVADO: los escriben otras aplicaciones.
+  app.list:
+    habilitada: true
+    politica: auto
+
+  # UI Automation (Fase 4.1). Las tres van en 'auto' PERO contenidas por
+  # allowlist, decidido el 2026-08-06. Hasta entonces estaban en 'auto' y
+  # sin ningun limite, que era mas poder que el de cualquier otra
+  # herramienta del proyecto: un clic sin lista puede pulsar el "Si,
+  # borrar" de cualquier dialogo abierto.
+  #
+  # POR QUE 'auto' Y NO 'confirmar': una tarea de interfaz son 6 u 8
+  # clics. Ocho preguntas seguidas entrenan a decir que si sin leerlas, y
+  # una aprobacion que nadie lee es peor que no preguntar. El limite lo
+  # pone la lista, no la pregunta, igual que en app.launch.
+  #
+  # LA ALLOWLIST ES DE PROGRAMAS, NO DE TITULOS DE VENTANA. Se comprueba
+  # contra el proceso DUENO de la ventana (notepad.exe -> notepad). Los
+  # titulos estan localizados y cambian solos al escribir, asi que
+  # contener por titulo se romperia a mitad de tarea. Lista vacia = no
+  # actua sobre ninguna ventana.
+  #
+  # LA LISTA DE app.launch ES EL TECHO DE ESTA, NO SU COPIA. Jarvis no
+  # deberia automatizar nada que no tenga permiso para abrir, pero al
+  # reves no se sigue: abrir un programa es un acto que se ve, y conducir
+  # su interfaz son clics que no. Empieza corta y anade lo que uses.
+  #
+  # DOS TRAMPAS MEDIDAS EL 2026-08-06, antes de anadir nada aqui:
+  #  - Las apps de la Store (UWP) NO valen por su nombre. La ventana de
+  #    la Calculadora pertenece a ApplicationFrameHost.exe, no a
+  #    calc.exe, asi que poner 'calc' aqui no habilita nada. Y poner
+  #    'ApplicationFrameHost' habilitaria TODAS las apps de la Store a la
+  #    vez (Correo, Fotos, Configuracion...), porque es un anfitrion
+  #    compartido: seria abrir la puerta entera creyendo abrir una.
+  #  - 'explorer' no es solo el explorador de archivos: explorer.exe es
+  #    tambien el escritorio, la barra de tareas y el menu Inicio. Es
+  #    mucho mas de lo que parece; anadelo solo si de verdad lo necesitas.
+  uia.find:
+    habilitada: true
+    politica: auto
+    allowlist:
+      - notepad
+
+  uia.click:
+    habilitada: true
+    politica: auto
+    allowlist:
+      - notepad
+
+  uia.type:
+    habilitada: true
+    politica: auto
+    allowlist:
+      - notepad
+
+  web.open:
+    habilitada: true
+    politica: confirmar
+    # Dominios permitidos. Solo http/https: file://, javascript: y data:
+    # se rechazan por esquema, antes de mirar esta lista.
+    # LISTA VACIA = NO ABRE NADA, igual que en el resto del archivo. Es
+    # incomodo a proposito: un agente que puede navegar a cualquier sitio
+    # puede traerse cualquier texto a su propio contexto. Anade aqui los
+    # dominios que uses; se aceptan subdominios (wikipedia.org cubre
+    # es.wikipedia.org).
+    allowlist:
+      - wikipedia.org
+      - github.com
+      - localhost
+      - 127.0.0.1
+
+  web.read:
+    habilitada: true
+    politica: auto
+
+  web.click:
+    habilitada: true
+    politica: confirmar
+
+  screen.capture:
+    habilitada: true
+    politica: auto
+
+  # Fase 4.2. ADR-0012 resuelto el 2026-08-14 (UI-TARS-2B-SFT), asi que
+  # deja de estar deshabilitada. Es la herramienta mas cara y la menos
+  # fiable del catalogo, y la politica la pone la ULTIMA: solo cuando no hay
+  # via programatica.
+  #
+  # 'confirmar' Y NO 'auto', al reves que uia.*, y no es una inconsistencia:
+  # lo que uia.* hace lo dice el plan ('clic en el control Guardar'), y lo
+  # que hace esto lo decide un modelo mirando la pantalla DESPUES de que el
+  # plan se escribiera. Por eso la pregunta no se puede formular hasta que
+  # la vision ha propuesto, y el executor la hace justo ahi, nombrando la
+  # tecla o el elemento concreto ('pulsar alt+a'). Un paso son 48 s en esta
+  # maquina, asi que tampoco hay riesgo de encadenar ocho preguntas
+  # seguidas: el argumento que hizo 'auto' a uia.* aqui no aplica.
+  # NO CAMBIAR A 'auto'. Para el CLIC la pregunta no es una formalidad:
+  # es su unica contencion. Una pulsacion la acota la lista blanca de
+  # teclas de accion/vision.py; un clic no se puede meter en ninguna lista,
+  # porque nadie sabe de antemano si el pixel de destino dice 'Guardar' o
+  # 'Eliminar'.
+  #
+  # La allowlist es de PROGRAMAS duenos de la ventana, igual que en uia.*
+  # (ver la nota larga de arriba, con sus dos trampas medidas: las apps de
+  # la Store y explorer). Lista vacia = no actua sobre ninguna ventana.
+  # Ademas depende de screen.capture: deshabilitar la captura deshabilita
+  # esto, porque sin mirar no hay nada que proponer.
+  vision.act:
+    habilitada: true
+    politica: confirmar
+    allowlist:
+      - notepad
+
+# Cualquier herramienta no listada arriba cae aqui. No cambiar a 'auto'.
+politica_por_defecto: confirmar
