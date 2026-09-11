@@ -1,0 +1,96 @@
+# =====================================================================
+#  Que NO entra, y por que. Cada linea de aqui es una decision.
+# =====================================================================
+
+# El entorno. 573 MB, y ademas los venv de Windows llevan rutas
+# ABSOLUTAS dentro: copiarlo a otra maquina no funciona. Se recrea con
+# `py -3.11 -m venv .venv` y `requirements.txt`.
+.venv/
+
+# 745 MB de los 757 que ocupaba el arbol antes de esto: las 5 voces de
+# piper y el whisper `small`. Son datos descargables, no codigo, y por
+# eso viven fuera del venv desde el principio (para que reinstalar
+# dependencias no se los lleve). Se bajan con:
+#   python -m piper.download_voices NOMBRE --download-dir modelos/piper
+modelos/
+
+# >>> LOS LOGS NO ENTRAN, Y NO ES POR TAMANO <<<
+# `logs/puente/*.jsonl` es el registro CRUDO de cada sesion: incluye lo
+# que el usuario dijo, palabra por palabra. Eso es suyo y no tiene que
+# vivir en un historial. Lo que si esta versionado son las TRAZAS de
+# `eval/trazas_claude_code/`, y de esas se copio a mano solo la linea de
+# respuesta, nunca lo que dijo el.
+# Excepcion: `falsos_positivos.txt`, que es una MEDICION y esta citada
+# desde `voz/wake.py` y desde el registro.
+logs/*
+!logs/falsos_positivos.txt
+
+# Bundle de CA local (para cuando un antivirus intercepta TLS). Es
+# configuracion de ESTE equipo, no del proyecto; se regenera con
+# `scripts/rebuild_ca_bundle.ps1`.
+.certs/
+
+# >>> LA CREDENCIAL DE TELEGRAM NO VA A GIT <<<
+# Un token de bot es una credencial: quien la tenga puede escribir en tu
+# chat. Y un secreto que entra en un historial no se borra facilmente ni
+# aunque se quite despues.
+config/telegram.yaml
+
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# >>> LA CONFIGURACION ES DE CADA UNO <<<
+# `config/*.yaml` son los datos de quien usa Jarvis: sus proyectos, sus
+# carpetas, sus dispositivos, sus servidores MCP. Lo que se publica es
+# `config/base/`, y el primer arranque lo copia solo
+# (`nucleo.configuracion.sembrar_base`). La linea de `telegram.yaml` de
+# arriba se queda aparte a proposito: un token es una credencial, no una
+# preferencia, y las credenciales no dependen de esta regla.
+config/*.yaml
+!config/base/*.yaml
+# Excepcion: la politica por herramienta no lleva nada de nadie (0 rutas
+# reales, comprobado) y es material de referencia del proyecto.
+!config/permisos.yaml
+
+# >>> DOS ARCHIVOS DE DESARROLLO QUE NO SON DEL PROYECTO <<<
+# Notas de trabajo de quien escribe esto. Se quedan en su disco; la regla
+# vive aqui para que no puedan colarse por descuido.
+casos.md
+bitacoravieja.txt
+
+# >>> Y LA VOZ DEL AUTOR TAMPOCO VIAJA (2026-09-08) <<<
+# `eval/audio_*/` son 184 grabaciones reales (21 MB): las 30 ordenes
+# dictadas, los 30 avisos, 12 tomas del SILENCIO DE SU SALA y cinco
+# tandas de wake word. Lo que se DICE en ellas es inocuo -- ordenes de
+# prueba, ni un dato personal --, pero es su voz y es su habitacion, y
+# eso no es una decision que se tome por defecto.
+# LO QUE CUESTA, dicho para que nadie crea que sobraban: son el corpus
+# con el que se midieron el WER (4,2 % -> 2,4 %), el fin de turno, el
+# lexico de parada y los falsos positivos del wake word. Los bancos de
+# `eval/` siguen aqui y saben grabar los suyos: quien quiera repetir
+# esas medidas tiene que dictar SU corpus, que ademas es lo correcto
+# -- un banco medido con otra voz no dice nada de la tuya.
+# `ordenes.json` SI se queda: son las etiquetas, texto que el autor
+# escribio, y sin ellas el "27/30 perfectas" del registro no se puede
+# ni leer.
+eval/audio_*/*.wav
+
+# >>> LA LISTA DE LO QUE NO PUEDE VIAJAR, QUE TAMPOCO VIAJA <<<
+# `config/privado.txt` enumera por su nombre los proyectos, los aparatos
+# y los datos de quien desarrolla esto, para que los tests puedan
+# comprobar que ninguno se cuela. Publicarla seria publicar exactamente
+# lo que protege. Ver `tests/privado.py`, que salta si no esta.
+config/privado.txt
+
+# >>> LA DEMO NO VIAJA EN EL REPOSITORIO, Y ES DELIBERADO <<<
+# (2026-09-10.) El GIF de Jarvis funcionando pesa 607 MB en crudo. Un
+# archivo asi en el arbol se lo descarga ENTERO todo el que clone, para
+# siempre y aunque solo quiera el codigo -- y ademas GitHub rechaza de
+# plano cualquier archivo de mas de 100 MB, o sea que el push ni saldria.
+# Se sube como ADJUNTO (a una incidencia o a una Release), que da una URL
+# de su CDN, y el README la enlaza: se ve igual en la portada y no cuesta
+# un byte al clonar. Misma idea que `modelos/`: lo que es un dato
+# descargable no se versiona.
+jarvis.gif
+jarvis-demo.gif

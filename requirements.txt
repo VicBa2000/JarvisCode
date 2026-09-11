@@ -1,0 +1,93 @@
+# Jarvis - dependencias de la Fase 0.
+# Las dependencias de voz (faster-whisper, openWakeWord, silero-vad,
+# Piper) se anaden en sus fases correspondientes, no antes.
+
+httpx>=0.27
+pydantic>=2.7
+PyYAML>=6.0
+
+# Fase 2.5: web.* (accion/herramientas/web_playwright.py).
+# Tras instalar hace falta bajar el navegador una vez:
+#   .venv\Scripts\python.exe -m playwright install chromium
+playwright>=1.62
+
+# Fase 4.1: uia.* (accion/herramientas/apps_uia.py). El arbol de
+# accesibilidad de Windows, que es la via que la politica exige ANTES de la
+# vision. Arrastra comtypes y pywin32.
+pywinauto>=0.6.9
+
+# Fase 4.2: screen.capture (accion/herramientas/pantalla.py), que es la
+# ENTRADA de la vision. `mss` captura (incluida la pantalla virtual
+# completa con varios monitores) y Pillow codifica el PNG: sin encoder,
+# la alternativa era BMP crudo, que en base64 son megabytes por captura.
+mss>=10.0
+Pillow>=10.0
+
+# Desarrollo y verificacion
+pytest>=8.2
+
+# ---------------------------------------------------------------------
+# Fase 5: la voz. Todo el stack corre en CPU sobre onnxruntime.
+# NO entra torch: openWakeWord trae `silero_vad.onnx` en su descarga de
+# modelos, asi que el VAD no necesita el paquete `silero-vad` de PyPI
+# (que arrastraria torch + torchaudio, ~250 MB, para hacer lo mismo).
+# Medido el 2026-08-20 en esta maquina.
+# ---------------------------------------------------------------------
+
+# Captura y reproduccion de audio (PortAudio).
+sounddevice>=0.4.6
+
+# Wake word (5.4). ADR-0002: "Hey Jarvis" con el modelo PREENTRENADO
+# `hey_jarvis_v0.1`, cero entrenamiento. En Windows el backend es
+# **onnx**, NUNCA tflite. Medido: carga 0.09 s y 1.5 ms por frame de
+# 80 ms (~2 % de un nucleo en tiempo real).
+openwakeword>=0.6.0
+onnxruntime>=1.17
+
+# STT (5.2). ADR-0001: corre en **CPU**, no disputa la VRAM del planner.
+faster-whisper>=1.1
+
+# TTS (5.1). ADR-0003: el acento es indiferente; la voz concreta se
+# elige POR LATENCIA MEDIDA contra la meta (primer audio
+# < 0.5 s).
+piper-tts>=1.7
+
+# STT (5.2) y el banco de ADR-0006. `soundfile` graba y lee los WAV de
+# las 30 ordenes dictadas: se graban UNA vez y se evaluan todos los
+# tamaños de Whisper sobre el mismo audio, porque una voz repetida 90
+# veces no es una entrada fija.
+soundfile>=0.12
+
+# ---------------------------------------------------------------------
+# La carcasa de escritorio (2026-08-26): bandeja, ventana y arranque con
+# Windows. La UI NO se reescribe -- `puente/consola.html` ya es la
+# interfaz --, asi que esto solo la envuelve. Electron/Tauri descartado
+# el 2026-08-24: cadena de herramientas nueva para duplicar lo que ya
+# funciona.
+# ---------------------------------------------------------------------
+
+# La ventana. Usa el **WebView2** que Windows ya trae, asi que no baja un
+# navegador: comprobado en esta maquina, runtime 151.0.4129.107, y
+# `webview.platforms.winforms.renderer` dice `edgechromium`.
+# >>> SI ESE RUNTIME FALTASE, pywebview cae al MSHTML de IE y la consola
+# >>> se veria rota SIN dar un error. Por eso se comprueba, no se supone.
+pywebview>=6.0
+
+# El icono de la bandeja. Pillow ya estaba arriba y aqui se usa para
+# DIBUJAR el icono en codigo (cambia de color con el estado), no para
+# cargar un .ico de disco.
+pystray>=0.19
+
+# ---------------------------------------------------------------------
+# >>> PARA PODER INSTALARSE DETRAS DE UN ANTIVIRUS <<< (2026-09-09)
+# En la maquina del autor -- y en cualquiera con Avast, Kaspersky, ESET
+# o un proxy de empresa -- las descargas de modelos mueren con
+# `CERTIFICATE_VERIFY_FAILED`: esos programas interceptan HTTPS y
+# presentan su propio certificado, que `certifi` no conoce.
+# `truststore` hace que Python verifique contra el ALMACEN DE WINDOWS,
+# donde esa CA ya esta instalada y donde el sistema ya la considera
+# fiable, porque la puso el propio antivirus.
+# LA ALTERNATIVA ERA `verify=False` / `--trusted-host`, o sea apagar la
+# verificacion en un programa que gobierna la maquina entera. No.
+# Lo usa `scripts/bajar_modelos.py`; Jarvis en marcha no lo importa.
+truststore>=0.10

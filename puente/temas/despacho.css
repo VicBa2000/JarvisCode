@@ -1,0 +1,358 @@
+/* ============================================================
+   TEMA DESPACHO -- la maqueta, no la paleta.
+   ============================================================
+   Los colores estan en `tema.css`. Aqui esta lo que de verdad cambia:
+   la CANTIDAD DE INFORMACION y el tamaño al que se lee.
+
+   La frase con la que se comprueba si esto se cumplio:
+   >>> "Un documento, no un panel: cada linea del registro es una frase
+        en castellano y lo tecnico esta a un clic." <<<
+
+   PARA QUIEN ES. Lo dijo el usuario: secretarias, administrativos,
+   financieros que usan Claude Code para leer exceles, revisar formatos
+   y sacar cuentas. Gente que no ha abierto una terminal en su vida y
+   que no tiene por que. Cada decision de abajo sale de ahi:
+
+   1. TODO MAS GRANDE. Cuerpo de 16 px (los otros temas van a 13-15),
+      controles de 46 px de alto (los otros 28-38), y CERO rotulos de
+      10 px con `.32em` de separacion entre letras. Un rotulo asi no se
+      lee: se descifra. Aqui van a 13 px y con separacion normal.
+
+   2. LOS DIBUJOS SE VAN, LAS FRASES SE QUEDAN. Fuera la reticula, el
+      bisel, el barrido y los halos. No son informacion; son atmosfera
+      de nave espacial, y en una pantalla que quiere parecerse a un
+      informe estorban. Lo que dice el estado -- `#estadoVoz`,
+      `#instruccion`, `#onda` -- se queda entero y mas grande.
+
+   3. LO TECNICO SE PLIEGA, NO SE BORRA. Las lineas de herramienta y de
+      resultado del registro llegan dentro de un `<details>` que en
+      este tema nace CERRADO y en los otros tres nace abierto (lo pone
+      `consola.html`, que es quien las construye). Un clic y esta ahi.
+      Esa es la unica excepcion de densidad que se acordo, y esta
+      acotada a esto.
+
+   >>> Y LA PUERTA VA AL REVES QUE TODO LO DEMAS <<<
+   Mientras el resto del tema encoge, la peticion de permiso CRECE:
+   titulo de 32 px, la lista de archivos con su fondo propio, la orden
+   cruda con su rotulo, y tres botones grandes de igual tamaño. Es el
+   unico sitio donde el usuario CONSIENTE, y es justo aqui donde mas
+   tienta hacerla "mas limpia". Una version que esconda el crudo o que
+   deje "No contestar ahora" mas pequeño que "Permitir" convierte el
+   consentimiento en un si por inercia.
+   ============================================================ */
+
+/* --- 0. base ------------------------------------------------------ */
+:root[data-tema="despacho"] body {
+  font-family: var(--cuerpo);
+  font-size: var(--texto-base);
+  line-height: 1.55;
+}
+
+/* Atrezzo de cabina: fuera. Sobre papel no da atmosfera, ensucia. */
+:root[data-tema="despacho"] #bisel,
+:root[data-tema="despacho"] #barrido { display: none; }
+:root[data-tema="despacho"] body::before { background: var(--fondo); }
+
+/* --- 1. el cristal se vuelve papel -------------------------------- */
+:root[data-tema="despacho"] .vidrio {
+  background: var(--fondo-medio);
+  backdrop-filter: none;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  box-shadow: 0 2px 10px rgba(var(--sombra-rgb),.07);
+}
+:root[data-tema="despacho"] .vidrio::before,
+:root[data-tema="despacho"] .vidrio::after { display: none; }
+
+/* --- 2. la cabecera: tres cosas y nada mas ------------------------ */
+:root[data-tema="despacho"] header.vidrio {
+  margin: 0; height: 66px; padding: 0 30px; gap: 26px;
+  background: var(--fondo-medio);
+  border: 0; border-bottom: 1px solid var(--linea);
+  box-shadow: none; border-radius: 0;
+}
+:root[data-tema="despacho"] header.vidrio .marca svg { display: none; }
+:root[data-tema="despacho"] header.vidrio .marca b {
+  font-family: var(--titular); font-size: 24px; font-weight: 700;
+  letter-spacing: 0; text-transform: none; color: var(--cian-max);
+  text-shadow: none;
+}
+:root[data-tema="despacho"] header.vidrio .separa { display: none; }
+/* NODE, CUOTA y COSTE siguen ahi -- son datos, no se tiran --, pero
+   dejan de estar en la esquina donde aterriza la mirada. */
+:root[data-tema="despacho"] header.vidrio .meta {
+  font-family: var(--cuerpo); font-size: 13px; letter-spacing: 0;
+  color: var(--muy-tenue); order: 9;
+}
+:root[data-tema="despacho"] header.vidrio .pestanas { gap: 6px; margin-left: 0; }
+:root[data-tema="despacho"] .pestana {
+  padding: 7px 16px; font-family: var(--cuerpo); font-size: 16px;
+  letter-spacing: 0; border: 0; border-bottom: 3px solid transparent;
+  background: transparent;
+}
+:root[data-tema="despacho"] .pestana[aria-selected="true"] {
+  background: transparent; color: var(--cian-max); font-weight: 600;
+  border-bottom-color: var(--ambar); box-shadow: none;
+}
+:root[data-tema="despacho"] #salud {
+  margin-left: auto; order: 8; padding: 7px 16px;
+  border-radius: 999px; font-family: var(--cuerpo);
+  font-size: 15px; font-weight: 600; letter-spacing: 0;
+  box-shadow: none;
+}
+:root[data-tema="despacho"] #salud::before { width: 9px; height: 9px;
+  border-radius: 50%; box-shadow: none; animation: none; }
+
+/* --- 3. el nucleo: una frase grande, no una cabina ---------------- */
+:root[data-tema="despacho"] #nucleo {
+  margin: 20px 30px 0; padding: 20px 26px; gap: 26px;
+  grid-template-columns: 260px minmax(0,1fr) 260px;
+}
+:root[data-tema="despacho"] .reticula { display: none; }
+/* Sin reticula, centrar deja el estado flotando en mitad de la
+   franja. Va a la izquierda, pegado a los rotulos. */
+:root[data-tema="despacho"] .franja { justify-content: flex-start; }
+:root[data-tema="despacho"] #estadoVoz {
+  font-family: var(--cuerpo); font-size: 30px; font-weight: 700;
+  letter-spacing: 0; line-height: 1.15; text-transform: lowercase;
+  color: var(--verde); text-shadow: none;
+}
+:root[data-tema="despacho"] #estadoVoz::first-letter { text-transform: uppercase; }
+:root[data-tema="despacho"] #instruccion {
+  font-size: 16px; letter-spacing: 0; color: var(--tenue); text-shadow: none;
+}
+:root[data-tema="despacho"] #ordinal { display: none; }
+:root[data-tema="despacho"] #tarea { font-family: var(--cuerpo); font-size: 15px; max-width: 60ch; }
+:root[data-tema="despacho"] #onda i { box-shadow: none; width: 4px; border-radius: 2px; }
+/* Las dos columnas de telemetria: dejan de ser un instrumento y pasan
+   a ser una lista legible. Ni una se esconde. */
+:root[data-tema="despacho"] .telemetria { gap: 5px; font-family: var(--cuerpo); font-size: 14px; letter-spacing: 0; }
+:root[data-tema="despacho"] .telemetria .guion { display: none; }
+:root[data-tema="despacho"] .telemetria .k { width: 104px; color: var(--tenue); }
+:root[data-tema="despacho"] .telemetria.der .k { width: auto; flex-grow: 1; }
+:root[data-tema="despacho"] .telemetria .v { font-weight: 600; }
+:root[data-tema="despacho"] .rotulo {
+  font-family: var(--cuerpo); font-size: 13px; font-weight: 700;
+  letter-spacing: .04em; color: var(--tenue); text-shadow: none;
+}
+
+/* --- 4. el cuerpo -------------------------------------------------- */
+:root[data-tema="despacho"] #cuerpo {
+  margin: 20px 30px; gap: 20px; grid-template-columns: minmax(0,1fr) 300px;
+}
+:root[data-tema="despacho"] #flujo { padding: 4px 26px 12px; gap: 0; }
+
+/* Cada linea del registro es una FRASE, con quien la dijo delante. */
+:root[data-tema="despacho"] .linea {
+  flex-direction: row; gap: 16px; align-items: baseline;
+  padding: 10px 0; border-top: 1px solid rgba(var(--cian-rgb),.10);
+}
+:root[data-tema="despacho"] .linea:first-child { border-top: 0; }
+:root[data-tema="despacho"] .linea .quien {
+  flex: none; width: 78px; font-family: var(--cuerpo);
+  font-size: 15px; font-weight: 700; letter-spacing: 0;
+  text-transform: capitalize; color: var(--tenue);
+}
+:root[data-tema="despacho"] .linea.usuario .quien { color: var(--ambar); text-shadow: none; }
+:root[data-tema="despacho"] .linea .cuerpo { flex-grow: 1; min-width: 0; font-size: 17px; }
+:root[data-tema="despacho"] .linea.auto .quien,
+:root[data-tema="despacho"] .linea.auto .cuerpo { font-size: 15px; }
+:root[data-tema="despacho"] .linea.pensamiento .cuerpo { font-size: 16px; }
+
+/* Lo tecnico, plegado. `consola.html` lo abre solo en los otros temas. */
+:root[data-tema="despacho"] .detalle > summary {
+  cursor: pointer; list-style: none;
+  font-family: var(--cuerpo); font-size: 14.5px; color: var(--cian);
+}
+:root[data-tema="despacho"] .detalle > summary::-webkit-details-marker { display: none; }
+:root[data-tema="despacho"] .detalle > summary::before { content: '\25B8  '; }
+:root[data-tema="despacho"] .detalle[open] > summary::before { content: '\25BE  '; }
+:root[data-tema="despacho"] .detalle > summary:hover { color: var(--cian-alto); }
+:root[data-tema="despacho"] .linea.herramienta .cuerpo,
+:root[data-tema="despacho"] .linea.resultado .cuerpo {
+  margin-top: 6px; padding: 10px 14px; font-size: 13px; line-height: 1.7;
+  border: 0; border-radius: 4px; background: var(--fondo);
+}
+
+:root[data-tema="despacho"] #pie {
+  padding: 14px 26px; background: var(--fondo-bajo); gap: 14px;
+}
+:root[data-tema="despacho"] #pie .prompt { display: none; }
+:root[data-tema="despacho"] #texto { font-family: var(--cuerpo); font-size: 16.5px; }
+:root[data-tema="despacho"] #mandar {
+  height: 46px; padding: 0 28px; border-radius: 4px;
+  border: 0; background: var(--cian-max); color: var(--fondo-medio);
+  font-family: var(--cuerpo); font-size: 15px; font-weight: 700;
+  letter-spacing: .06em; box-shadow: none;
+}
+:root[data-tema="despacho"] #mandar:hover { background: var(--cian-alto); }
+
+/* --- 5. el rail: cuatro tarjetas de papel ------------------------- */
+:root[data-tema="despacho"] #rail { gap: 14px; }
+:root[data-tema="despacho"] .modulo { padding: 18px 20px; gap: 10px; }
+:root[data-tema="despacho"] .canal { font-family: var(--cuerpo); font-size: 15px; gap: 10px; }
+:root[data-tema="despacho"] .canal .led {
+  width: 9px; height: 9px; border-radius: 50%; box-shadow: none;
+}
+:root[data-tema="despacho"] .canal .estado { color: var(--tenue); font-size: 14px; }
+:root[data-tema="despacho"] .cifra {
+  font-family: var(--titular); font-size: 34px; font-weight: 700; text-shadow: none;
+}
+:root[data-tema="despacho"] body.cabina .barra {
+  height: 7px; border-radius: 999px; background: var(--fondo-medio);
+}
+:root[data-tema="despacho"] body.cabina .barra > i {
+  height: 7px; border-radius: 999px; background: var(--ambar); box-shadow: none;
+}
+:root[data-tema="despacho"] body.cabina .barra::after { display: none; }
+:root[data-tema="despacho"] .dato {
+  font-family: var(--cuerpo); font-size: 14.5px; letter-spacing: 0; color: var(--tenue);
+}
+:root[data-tema="despacho"] .dato span:last-child { font-weight: 700; color: var(--cian-max); }
+:root[data-tema="despacho"] .meta { font-family: var(--cuerpo); font-size: 13.5px; letter-spacing: 0; }
+
+/* --- 6. LA PUERTA: la pieza mas grande de la pantalla ------------- */
+:root[data-tema="despacho"] #pendientes { margin: 20px 30px 0; gap: 14px; }
+:root[data-tema="despacho"] .puerta {
+  padding: 0 0 24px;
+  background: var(--fondo-medio); backdrop-filter: none;
+  border: 1px solid rgba(var(--ambar-rgb),.45);
+  border-top: 5px solid var(--ambar);
+  border-radius: var(--radio);
+  box-shadow: 0 3px 14px rgba(var(--sombra-rgb),.10);
+  /* No late. Sobre fondo claro un latido es una alarma de incendio, y
+     esto es una espera: la sesion no avanza, pero nada esta ardiendo. */
+  animation: none;
+}
+/* La cinta de peligro tampoco: en claro se lee como decoracion. Lo que
+   avisa aqui es el filete ambar de 5 px de arriba. */
+:root[data-tema="despacho"] .puerta::before { display: none; }
+:root[data-tema="despacho"] .puerta h3 {
+  margin: 20px 26px 4px; font-family: var(--titular);
+  font-size: 32px; font-weight: 700; line-height: 1.15; text-shadow: none;
+}
+:root[data-tema="despacho"] .puerta .motivo {
+  margin: 0 26px 14px; font-family: var(--cuerpo); font-size: 15px;
+  letter-spacing: 0; color: var(--tenue); text-shadow: none;
+}
+:root[data-tema="despacho"] .puerta .enunciado { margin: 0 26px 12px; font-size: 17px; }
+:root[data-tema="despacho"] .puerta .cuerpo { margin: 0 26px 12px; font-size: 17px; }
+:root[data-tema="despacho"] .puerta .crudo {
+  margin: 0 26px 20px; padding: 11px 15px; font-size: 13.5px; line-height: 1.65;
+  border: 0; border-radius: 4px; background: var(--fondo-medio);
+  color: var(--puerta-enunciado);
+}
+/* El rotulo que dice QUE es ese bloque de letras raras. Sin el, la
+   persona a la que va este tema no sabe si eso es un error o un dato. */
+:root[data-tema="despacho"] .puerta .crudo::before {
+  content: attr(data-rotulo); display: block; margin-bottom: 6px;
+  font-family: var(--cuerpo); font-size: 15px; color: var(--puerta-tenue);
+}
+:root[data-tema="despacho"] .puerta .botones { margin: 0 26px; gap: 12px; }
+:root[data-tema="despacho"] .puerta button {
+  flex: 1 1 0; height: auto; min-height: 58px; padding: 12px 18px;
+  border-radius: 4px; font-family: var(--cuerpo); font-size: 18px;
+  font-weight: 700; letter-spacing: 0; text-align: left;
+}
+:root[data-tema="despacho"] .puerta button.si { box-shadow: none; }
+:root[data-tema="despacho"] .puerta button.no { background: var(--fondo-medio); }
+/* La tercera salida no se dibuja mas pequeña que las otras dos: se
+   dibuja DISTINTA. Discontinuo dice "esto no decide nada todavia". */
+:root[data-tema="despacho"] .puerta button.espera { border-style: dashed; }
+/* Lo que pasa con cada boton, escrito debajo del boton. */
+:root[data-tema="despacho"] .puerta button .consecuencia {
+  display: block; margin-top: 2px; font-size: 14.5px; font-weight: 400;
+}
+
+/* --- 7. la vista de ajustes --------------------------------------- */
+:root[data-tema="despacho"] #vistaAjustes {
+  margin: 0; border: 0; background: transparent;
+}
+
+/* ============================================================
+   AJUSTES -- cinco controles a la vista y lo demas plegado, cada uno
+   diciendo QUE hay dentro antes de abrirlo.
+   ============================================================ */
+:root[data-tema="despacho"] .hoja { max-width: 780px; padding: 34px 30px 100px; }
+:root[data-tema="despacho"] header h1 {
+  font-family: var(--titular); font-size: 34px; font-weight: 700;
+  letter-spacing: 0; text-shadow: none;
+}
+:root[data-tema="despacho"] .intro { font-size: 17px; margin-bottom: 22px; }
+
+:root[data-tema="despacho"] section {
+  margin-bottom: 22px; padding: 0 0 6px;
+  background: var(--fondo-medio); border: 1px solid var(--linea);
+  border-radius: 6px; box-shadow: none; overflow: hidden;
+}
+:root[data-tema="despacho"] section > h2 {
+  margin: 16px 26px 0; font-family: var(--titular); font-size: 21px;
+  font-weight: 600; letter-spacing: 0; text-transform: none;
+}
+:root[data-tema="despacho"] section > .nota {
+  margin: 0 26px 8px; font-size: 15px;
+}
+:root[data-tema="despacho"] .fila {
+  padding: 14px 26px; border-top: 1px solid rgba(var(--cian-rgb),.10);
+}
+:root[data-tema="despacho"] .fila > label.titulo {
+  font-size: 17.5px; font-weight: 600; margin-bottom: 1px;
+}
+:root[data-tema="despacho"] .fila .ayuda { font-size: 15px; margin-bottom: 12px; }
+:root[data-tema="despacho"] .control { gap: 12px; }
+
+:root[data-tema="despacho"] select,
+:root[data-tema="despacho"] input[type=text],
+:root[data-tema="despacho"] input[type=number],
+:root[data-tema="despacho"] input[type=password] {
+  height: 46px; padding: 0 16px; border-radius: 5px;
+  font-family: var(--cuerpo); font-size: 16.5px;
+  background: var(--fondo-bajo); border: 1px solid rgba(var(--cian-rgb),.28);
+}
+:root[data-tema="despacho"] textarea {
+  padding: 12px 16px; border-radius: 5px;
+  font-family: var(--cuerpo); font-size: 16px; background: var(--fondo-bajo);
+}
+:root[data-tema="despacho"] .palanca { width: 58px; height: 32px; }
+:root[data-tema="despacho"] .palanca .bola { width: 24px; height: 24px; }
+:root[data-tema="despacho"] .palanca input:checked + .pista .bola { left: 30px; box-shadow: none; }
+:root[data-tema="despacho"] .palancaTexto {
+  font-family: var(--cuerpo); font-size: 15.5px; font-weight: 700; letter-spacing: 0;
+}
+:root[data-tema="despacho"] button {
+  height: 46px; padding: 0 24px; border-radius: 5px;
+  font-family: var(--cuerpo); font-size: 16px; font-weight: 600; letter-spacing: .04em;
+}
+:root[data-tema="despacho"] #guardar {
+  background: var(--cian-max); color: var(--fondo-medio); border-color: var(--cian-max);
+}
+:root[data-tema="despacho"] body.panel .barra { padding: 16px 30px; }
+:root[data-tema="despacho"] body.panel .barra .interior { max-width: 780px; }
+
+:root[data-tema="despacho"] .zona { padding: 14px 0; gap: 14px; align-items: center; }
+:root[data-tema="despacho"] .zona .quePuede {
+  width: 132px; font-family: var(--cuerpo); font-size: 14.5px;
+  font-weight: 700; letter-spacing: 0;
+}
+:root[data-tema="despacho"] .zona .ruta { font-size: 14px; }
+:root[data-tema="despacho"] .zona .motivo { font-size: 15px; }
+:root[data-tema="despacho"] .zona .coste { font-size: 15px; }
+:root[data-tema="despacho"] .leyenda { padding: 16px 18px; border-radius: 5px; }
+:root[data-tema="despacho"] .leyenda div { font-size: 15px; }
+:root[data-tema="despacho"] .leyenda b { font-family: var(--cuerpo); font-size: 14.5px; letter-spacing: 0; }
+:root[data-tema="despacho"] details.porque > summary {
+  font-family: var(--cuerpo); font-size: 14.5px; letter-spacing: 0;
+}
+:root[data-tema="despacho"] details.porque .cuerpo { padding: 14px 16px; font-size: 15px; }
+:root[data-tema="despacho"] .cuando { font-family: var(--cuerpo); font-size: 13.5px; letter-spacing: 0; }
+:root[data-tema="despacho"] .insignia {
+  font-family: var(--cuerpo); font-size: 13.5px; letter-spacing: 0;
+  padding: 3px 10px; border-radius: 999px;
+}
+:root[data-tema="despacho"] #detalleFijas summary {
+  font-family: var(--cuerpo); font-size: 15px; letter-spacing: 0;
+}
+
+/* Aqui SI se ve el resumen: es el clic que abre el detalle tecnico. */
+:root[data-tema="despacho"] .linea .detalle { flex-grow: 1; min-width: 0; }
+:root[data-tema="despacho"] .linea .detalle > summary { display: block; }

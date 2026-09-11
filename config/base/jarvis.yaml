@@ -1,0 +1,579 @@
+# =====================================================================
+#  LA LINEA BASE DE JARVIS. Esto es lo que se publica.
+# =====================================================================
+#
+# Este archivo es OBLIGATORIO: sin el, Jarvis no arranca (medido). Los
+# demas `config/*.yaml` nacen ausentes y eso significa "nada declarado",
+# asi que no hay que crearlos.
+#
+# >>> NO HACE FALTA EDITAR ESTE ARCHIVO PARA EMPEZAR <<<
+# Todo lo que un usuario necesita tocar esta en la pestaña AJUSTES, y lo
+# que guarde ahi va a `config/ajustes.yaml`, que se escribe SOLO y pisa a
+# este. Este se queda como la linea base medida: 420 de sus lineas son el
+# porque de cada numero, y por eso el panel no lo reescribe nunca.
+#
+# Lo unico que aqui nace vacio son los APARATOS DE AUDIO, porque no se
+# pueden adivinar. Ver el bloque `voz.audio`.
+#
+# Configuracion general de Jarvis.
+
+general:
+  idioma: es
+  # Modo de entrada. En las Fases 1-4 se opera por texto; la voz se
+  # ensambla en la Fase 5.
+  modo_entrada: texto        # texto | voz
+
+voz:
+  # Todo este bloque se activa en la Fase 5.
+
+  # --- PERFILES DE VOZ (2026-08-20) ----------------------------------
+  #
+  # Un perfil junta las TRES cosas que forman una persona: como se llama,
+  # con que voz habla y con que frase se despierta. Van juntas porque
+  # cambiar solo una deja al sistema hablando con voz de mujer, llamandose
+  # Jarvis y respondiendo a "Hey Jarvis": tres medios cambios, y el que se
+  # olvida siempre es el que nadie esta mirando.
+  #
+  # QUE ES LIBRE Y QUE NO, que es lo unico importante de este bloque:
+  #   nombre   libre.
+  #   tts_voz  libre, cualquier voz de modelos/piper.
+  #   wake_words  **NO ES LIBRE**. openWakeWord solo trae CUATRO frases
+  #     preentrenadas: alexa, hey_mycroft, hey_jarvis, hey_rhasspy.
+  #     ADR-0002 eligio hey_jarvis justamente porque es CERO
+  #     entrenamiento. Cualquier otra frase obliga a entrenar un modelo,
+  #     que son horas de trabajo y la decision que ADR-0002 evito a
+  #     proposito. `voz/perfil.py` no lo prohibe, pero lo MARCA, y no
+  #     deja que el perfil ACTIVO se quede sin ninguna frase usable: eso
+  #     seria un Jarvis que escucha y no puede despertarse nunca.
+  #
+  # ES UNA LISTA a proposito: openWakeWord carga varios modelos a la vez
+  # y los puntua en la misma pasada, asi que una persona puede responder
+  # a mas de una frase sin coste de diseño. Ponerlo en plural ahora no
+  # cuesta nada; ponerlo despues de la 5.4 seria una migracion.
+  perfil: jarvis
+
+  perfiles:
+    jarvis:
+      nombre: Jarvis
+      # ADR-0003 CERRADO el 2026-08-20 midiendo, y elegida de oido por el
+      # usuario entre las 5 candidatas. La latencia NO decidio: las cinco
+      # cumplen la meta con dos ordenes de magnitud de margen (29-98 ms
+      # contra los 500 de meta) una vez el texto se escribe para un oido.
+      tts_voz: es_ES-davefx-medium
+      wake_words:
+        # SE PRONUNCIA A LA INGLESA, y no es un capricho: el modelo
+        # `hey_jarvis_v0.1` se entreno en ingles y la J española (/x/, de
+        # "jamon") no le vale. Hay que decir la J de "yema" (/dʒ/):
+        # "jei YAR-vis". Medido el 2026-08-25 con el mismo micro y la
+        # misma distancia, cambiando SOLO la pronunciacion:
+        #     a la española   1/20   mediana 0,266
+        #     a la inglesa    5/6    mediana 0,954
+        # Decision del usuario ese dia: quedarse con esta palabra y
+        # decirla asi. Si algun dia cansa, las salidas son otra palabra
+        # (hay alexa, hey_mycroft y hey_rhasspy en disco) o entrenar un
+        # modelo propio en español, que es un proyecto aparte.
+        - hey_jarvis
+        # PEDIDO POR EL USUARIO el 2026-08-20, en referencia a Pluto:
+        # un segundo nombre de activacion. NO ESTA DESCOMENTADO PORQUE NO
+        # EXISTE: openWakeWord no lo trae, hay que entrenarlo. Se queda
+        # aqui escrito para que la 5.4 lo encuentre en vez de que se
+        # pierda en una conversacion.
+        # - hey_epsilon
+
+    jarvis_en:
+      # JC-0018 (2026-08-28): el mismo Jarvis, hablando ingles.
+      #
+      # >>> LA VOZ NO ESTA EN DISCO Y ESO ES A PROPOSITO <<<
+      # `modelos/piper/` tiene cinco voces y las cinco son españolas.
+      # Este perfil se declara igualmente porque un perfil declarado y
+      # sin modelo da un error que DICE lo que falta y como bajarlo
+      # (`voz/tts.py: ruta_de_voz`), mientras que no declararlo dejaria
+      # "ingles" como una opcion que simplemente no funciona sin decir
+      # por que. Se baja con:
+      #
+      #     .venv\Scripts\python.exe -m piper.download_voices       #         en_US-lessac-medium --download-dir modelos/piper
+      #
+      # `lessac` es la eleccion de partida -- es la voz de referencia de
+      # Piper en ingles y la que mas se parece en registro a davefx --,
+      # y NO esta elegida de oido como si lo estuvo la española
+      # (ADR-0003). Cuando el usuario escuche las candidatas, esta linea
+      # es la unica que cambia.
+      nombre: Jarvis
+      tts_voz: en_US-lessac-medium
+      wake_words:
+        # LA MISMA, y aqui juega a favor: `hey_jarvis_v0.1` se entreno en
+        # ingles, o sea que en este perfil la pronunciacion natural del
+        # usuario es justo la que el modelo espera. El aviso de la J
+        # inglesa deja de hacer falta.
+        - hey_jarvis
+
+    kana:
+      # Segundo perfil, elegido de oido por el usuario el 2026-08-20
+      # entre Yuki / Eva / Kana / Vicky, escuchando los cuatro nombres
+      # dichos POR ESTA MISMA VOZ: un nombre japones pasado por un TTS
+      # español no suena como uno lo lee, asi que leerlos no habria
+      # servido para elegir.
+      nombre: Kana
+      tts_voz: es_MX-claude-high
+      # LA MISMA QUE JARVIS, y es una decision del usuario, no un
+      # descuido: cambiar de frase obligaria a entrenar un modelo y hoy
+      # no toca (ADR-0002). O sea que este perfil cambia el NOMBRE y la
+      # VOZ, y se sigue despertando con "Hey Jarvis" hasta que exista
+      # algo entrenado. Cuando lo haya, se cambia solo esta linea.
+      wake_words:
+        - hey_jarvis
+
+  # --- Fase 5.0: que dispositivo se usa ------------------------------
+  #
+  # POR QUE ESTO ES EXPLICITO Y NO "el de por defecto de Windows".
+  # Medido el 2026-08-20 en la maquina del autor: 23 endpoints de audio
+  # activos, de los cuales 16 eran cables virtuales. Grabar de un cable
+  # virtual NO da error: da silencio digital perfecto. Si Jarvis cayera
+  # ahi por defecto, escucharia para siempre sin oir nada y sin quejarse.
+  # Es la forma de fallo de siempre (dos significados opuestos por la misma
+  # puerta), asi que el dispositivo se declara con nombre y `voz/audio.py`
+  # se niega a adivinar: si el que se pide no esta, para y dice cuales hay.
+  #
+  # LAS LISTAS SON ORDENADAS: se usa el primero que este presente. Eso
+  # deja poner el micro bueno delante y el de repuesto detras — el dia
+  # que enchufes el primero se usa solo, sin tocar este archivo.
+  #
+  # >>> Y NACEN VACIAS A PROPOSITO <<<
+  # No se puede adivinar que aparatos tienes, y poner los de otra maquina
+  # seria peor que no poner ninguno: Jarvis pediria un micro que no
+  # existe. Vacio significa "todavia no lo has elegido", y se elige en
+  # Ajustes > Oir y hablar, donde ademas hay un boton de PROBAR. Ese
+  # boton no es un lujo: 16 de los 23 endpoints de esta clase de maquina
+  # entregan silencio digital sin dar error, asi que elegir a ciegas
+  # reparte un fallo mudo.
+  #
+  # HOST API = DirectSound, y no es cosmetico. Medido el mismo dia:
+  #   MME          remuestrea a 16 kHz  | corta los nombres a 31 chars
+  #   DirectSound  remuestrea a 16 kHz  | nombres completos   <-- este
+  #   WASAPI       NO remuestrea        | nombres completos
+  # WASAPI compartido acepta UNA sola frecuencia por dispositivo, la
+  # nativa: una webcam USB suele ser nativa de 16 kHz (justo lo que quieren
+  # openWakeWord, silero-vad y faster-whisper), pero el micro de placa es
+  # de 44.1 kHz y un USB suele ser de 48 kHz. Con DirectSound remuestrea
+  # el host API y Jarvis no lleva resampler propio: una pieza menos en el
+  # presupuesto de latencia y un sitio menos donde meter un bug.
+  audio:
+    host_api: Windows DirectSound
+    entrada: []       # elige el tuyo en Ajustes, y PRUEBALO
+    salida:
+      # >>> LA SALIDA SI PUEDE SEGUIR AL SISTEMA, Y LA ENTRADA NO <<<
+      # Es asimetrico a proposito (2026-08-26): si el audio sale por el
+      # sitio equivocado te das cuenta al segundo, pero un microfono que
+      # no capta nada no se distingue de un Jarvis que te ignora. Por eso
+      # aqui vale el predeterminado de Windows y arriba no.
+      - sistema
+
+  wake_word:
+    # >>> `habilitado` SE QUITO EL 2026-09-03, Y DECIA UNA MENTIRA <<<
+    # Estaba puesto a `false` con el wake word funcionando perfectamente,
+    # porque no lo leia nadie: `grep habilitado` sobre el arbol entero no
+    # daba un solo lector. Quien abriera este archivo a depurar por que
+    # "hey jarvis" no responde lo habria encontrado primero, y era la
+    # respuesta equivocada. Encender y apagar la escucha es
+    # `voz.encendida`, que si manda y esta en el panel.
+    #
+    # 0,5 y NO 0,6, medido con la voz del usuario el 2026-08-25 (las
+    # cuatro tandas estan en eval/audio_wake_*/). A distancia de uso real
+    # el intento mas flojo de los buenos quedo en 0,494: con 0,6 se
+    # habria perdido. Se llego a proponer 0,7 leyendo una tanda hecha DE
+    # CERCA, y la de distancia lo desmintio el mismo dia.
+    # Falsos positivos: 0 en 10 min con la sala viva (2026-08-25). Eso
+    # descarta lo peor -- un umbral que salte a todas horas -- pero NO
+    # estima una tasa: con 0 sucesos no hay respuesta que leer.
+    umbral: 0.5
+  stt:
+    modelo: small              # ADR-0006, se mide en la Fase 5
+    # >>> ESTA CLAVE YA NO MANDA (JC-0018, 2026-08-28) <<<
+    # El idioma de la transcripcion lo decide `voz.idioma`, que es lo que
+    # se toca desde los ajustes. Se conserva la linea porque es de donde
+    # sale el valor cuando no se puede leer el ajuste, y porque borrarla
+    # dejaria la impresion de que el idioma no esta fijado en ningun
+    # sitio -- lo esta, y a proposito: autodetectar cuesta una pasada
+    # entera del modelo por cada frase.
+    idioma: es
+    dispositivo: cpu           # NO usar GPU: la VRAM es para el planner
+
+    # --- ANCLA DE VOCABULARIO (2026-08-21) ---------------------------
+    #
+    # Se le adelantan al modelo las palabras del dominio. Medido sobre
+    # el corpus real de esta sala (30 ordenes + 12 silencios), `small`,
+    # control en la misma tanda:
+    #
+    #     brazo      WER    perfectas   mejoran  empeoran
+    #     control    4.2%     24/30        -        -
+    #     con ancla  2.4%     27/30        3        0
+    #
+    # Las 3 que arregla son las 3 de 'bloc' -> 'blog', que era la unica
+    # falla real del banco. Las 3 que quedan son artefactos del WER: el
+    # modelo normalizo BIEN ('dos mil veintiseis' -> '2026') y la
+    # metrica se lo cobra. Cuesta ~0,2 s de latencia.
+    #
+    # OJO, Y ES LO IMPORTANTE: activar esto MUEVE la frontera de la
+    # guarda de "nadie hablo". Medido, misma tanda:
+    #         sin ancla  habla max 0.219  <  silencio min 0.686
+    #         con ancla  habla max 0.031  <  silencio min 0.490
+    # Siguen separadas, pero con el umbral viejo (0.6) se colarian 4 de
+    # los 12 silencios COMO ORDENES. Por eso `voz/stt.py` tiene dos
+    # umbrales y elige segun esto. No se toca uno sin el otro.
+    #
+    # Acepta una cadena o una lista. Quitarlo (`false`) es una decision
+    # explicita y distinta de no configurarlo: sin la clave se usa el
+    # ancla medida por defecto.
+    ancla_vocabulario:
+      - bloc de notas
+      - Descargas
+      - Documentos
+      - Imagenes
+      - Escritorio
+      - papelera
+      - captura
+      - informe
+      - factura
+      - carpeta
+      - archivo
+      - navegador
+      - calculadora
+      - explorador
+      - git status
+      - pip list
+      - PDF
+  tts:
+    voz: null                  # ADR-0003, pendiente
+    habilitado: false
+
+planner:
+  # Limite de reintentos por paso.
+  max_reintentos_por_paso: 3
+  # Corta la tarea entera si se pasa de aqui, para evitar bucles.
+  #
+  # 300 -> 600 el 2026-08-21, y NO es una mejora especulativa: es
+  # alinear produccion con las condiciones bajo las que se midio TODO.
+  # `eval/e2e_organiza_grande.py:242` usa `timeout_s = 600 si un_paso`,
+  # y `un_paso_a_la_vez` esta en true aqui arriba. O sea que la
+  # combinacion REAL de produccion -- un paso a la vez con 300 s -- no
+  # la habia medido nadie, y era MAS estrecha que el banco.
+  # LA CUENTA: los dos timeouts observados dan el ritmo (642 s / 25
+  # pasos y 618 s / 24) = **~26 s por paso**. Con 300 s caben ~11
+  # pasos, y las 5 rondas que COMPLETARON la tarea necesitaron 9, 10,
+  # 10, 11 y 12. Produccion estaba cortando justo por donde caen los
+  # exitos, asi que todas las cifras de `organiza` que quedaron
+  # registradas describen una maquina mas generosa que la del usuario.
+  # Verificado en el CODIGO, no aqui: `Ciclo` llama a
+  # `Limites.desde_config()` (accion/bucle.py:382), que lee esta clave.
+  timeout_tarea_segundos: 600
+  # Fase 3.3: al terminar todos los pasos, comprobar si la orden quedo
+  # cumplida. La comprobacion barata (orden vs herramientas usadas) es
+  # gratis y corre siempre; esto decide si ademas se le pregunta al
+  # modelo cuando esa comprobacion sospecha, que cuesta ~6 s.
+  # Ponerlo en false NO desactiva la comprobacion barata: solo deja las
+  # sospechas sin arbitro, y una sospecha sin arbitro se informa como
+  # dudosa en vez de replanificarse.
+  verificar_objetivo: true
+  # Fase 3.3 bis (2026-08-11): cuando el juez responde que la orden SI
+  # quedo cumplida, se le pregunta OTRA VEZ, y hacen falta dos sies para
+  # cerrar la tarea. Si las dos respuestas no coinciden, la tarea acaba
+  # en SIN_CONFIRMAR (no en fallida: dos muestras que se parten no son un
+  # "no" seguro, y solo se replanifica ante un "no" seguro).
+  #
+  # POR QUE. Medido con `python -m eval.sonda_juez`, dandole al juez real
+  # la traza exacta de una ejecucion que creo tres carpetas y no movio ni
+  # un archivo: dijo CUMPLIDO 1 de cada 6 veces, y 1 de cada 10 en una
+  # segunda tanda. El juez no esta roto (caza la trampa las otras 5 y
+  # acierta todos los controles), pero falla ABIERTO, que es la unica
+  # direccion que importa.
+  #
+  # ES ASIMETRICO A PROPOSITO: solo se repregunta un CUMPLIDO. Un FALLIDO
+  # y un INCIERTO valen a la primera. Esto sube el liston para CONCLUIR
+  # que algo esta hecho, nunca para sospecharlo — la misma forma que
+  # "una comprobacion barata puede ESCALAR, nunca CONCLUIR".
+  #
+  # EN true PORQUE ESTA MEDIDO (2026-08-11, misma sesion los dos brazos):
+  #   trampa-mkdir, 60 reps con doble   0/60 falla abierta
+  #   trampa-mkdir, 10 reps de control  1/10 falla abierta
+  #   los 3 casos honestos, 10 reps     10/10 en los dos brazos
+  # Ojo con el tamano del efecto: un "si" a la primera es raro, asi que
+  # 70 ejecuciones con doble solo produjeron 2, de los que 1 se confirmo
+  # y 1 no. Eso sostiene "lo reduce mas o menos a la mitad", NO el 6x que
+  # daria la independencia. Lo solido es la direccion y que no rompe nada.
+  #
+  # SU COSTE, que es lo unico que puede querer apagarlo: +3.1 s medidos
+  # (3.0 -> 6.1 s), y solo en las tareas que ya levantaban sospecha Y que
+  # el juez iba a dar por buenas. Incluye la falsa alarma ya aceptada
+  # ("crea una carpeta llamada informes"). Toca la latencia.
+  confirmacion_doble_objetivo: true
+  # Fase 3.4: cuando un paso de descubrimiento (app.list, uia.find,
+  # fs.list...) devuelve un dato y QUEDAN pasos por delante, se
+  # replanifica lo que falta con ese dato a la vista. Es lo que el diseno
+  # pide: decidir la accion concreta viendo el estado actual.
+  #
+  # TIENE PRESUPUESTO PROPIO, SEPARADO DEL DE FALLOS, a proposito. Un
+  # descubrimiento no es un fallo, y gastarlo del mismo bote haria que
+  # mirar antes de actuar dejase a la tarea sin margen para recuperarse
+  # de un error de verdad. Ademas cada accion concreta solo puede
+  # disparar UN replan (se lleva por clave), asi que ni repitiendo la
+  # misma consulta se puede ciclar.
+  #
+  # A 0 se apaga el mecanismo entero y el bucle vuelve a comportarse como
+  # en 3.3: el plan se ejecuta entero como se escribio.
+  max_replanes_por_hallazgo: 2
+  # Fase 3.5: la otra mitad de lo anterior. Cuando se replanifica por un
+  # FALLO o porque la orden no quedo cumplida, el planner ve tambien lo
+  # que averiguaron los pasos que SI funcionaron. Antes solo veia
+  # "la herramienta devolvio datos", que no nombra ni uno.
+  #
+  # Interruptor propio, separado del presupuesto de arriba, para poder
+  # correr las dos versiones en la MISMA sesion, que es como se comparan.
+  # Este es literalmente el sitio donde una frase de mas costo 1/5 -> 0/5
+  # el 2026-08-06, asi que aqui SOLO entran datos: ninguna instruccion
+  # nueva sobre que hacer con ellos.
+  hallazgo_en_replanificacion: true
+
+  # Fase 3.6 (2026-08-15): cuando la comprobacion de objetivo se para en
+  # un TECHO — o sea cuando consta que falta un paso, no cuando hay una
+  # duda — la tarea vuelve al planner en vez de cerrarse con un aviso.
+  #
+  # LA DISTINCION ES TODO. Hasta hoy los dos casos salian por la misma
+  # puerta como INCIERTO y la tarea acababa en SIN_CONFIRMAR:
+  #   - "el modelo no supo decidir"  -> sigue cerrando. Rehacer trabajo
+  #     que probablemente ya se hizo es peor que decir que no consta.
+  #   - "solo se preparo el terreno" -> es un HECHO sobre lo que corrio.
+  #     El fs.move no es incierto: no se ejecuto nunca. No hay nada que
+  #     rehacer, hay algo que falta, y esta nombrado.
+  #
+  # POR QUE HACIA FALTA: medido el 14-15, el planner produce la traza
+  # "carpetas creadas y nada movido" en ~12 % de las ordenes de
+  # organizar. El cuarto techo hizo que eso dejara de cerrar como
+  # COMPLETADA — dejo de mentir — pero la tarea seguia sin hacerse.
+  # Cerrar con un aviso es la mitad del trabajo; la otra mitad es volver.
+  #
+  # ACOTADO: gasta el MISMO presupuesto que un fallo
+  # (`max_reintentos_por_paso`), asi que no puede ciclar, y cada replan
+  # vuelve a cruzar la puerta de aprobacion como cualquier otro.
+  #
+  # EN true, y aqui "el lado seguro" no es el de los demas interruptores
+  # de este archivo: en los otros lo seguro es dudar mas, en este lo
+  # seguro es INTENTARLO. Volver cuesta una ronda de planificacion; no
+  # volver le cuesta al usuario la tarea.
+  replanificar_ante_hueco: true
+
+  # --- ADR-0028, pieza 1: COBERTURA A NIVEL DE ELEMENTO ---------------
+  #
+  # Las dos mitades del sexto techo, con un interruptor cada una porque
+  # pueden regresar por separado: la primera ESCALA al juez y la segunda
+  # le lleva la contraria.
+  #
+  # QUE PROBLEMA RESUELVEN. Los cinco techos anteriores razonan sobre
+  # FAMILIAS de herramientas: preguntan si CAMBIO algo, y ninguno
+  # pregunta si el cambio CUBRE la orden. Ante "organiza 18 archivos"
+  # resuelto moviendo 12, los cinco callan con razon y la tarea cerraba
+  # como COMPLETADA con seis archivos sueltos (3 de 5 rondas medidas el
+  # 2026-08-18, y 4 de 5 tras intentar contarselo al juez).
+  #
+  # POR QUE NO SE LE CUENTA AL JUEZ: se intento y salio PEOR (3/5 -> 4/5
+  # de falsos COMPLETADA), y era un callejon ya documentado con cuatro
+  # intentos previos. Contar es lo que un conjunto hace bien y un LLM
+  # mal. Ver accion/cobertura.py.
+
+  # La sospecha: nombra los archivos pendientes y escala al juez. Barata,
+  # no concluye nada, y por eso puede permitirse una falsa alarma.
+  sospecha_cobertura: true
+
+  # El techo: si el juez da la orden por cumplida y CONSTA que quedan
+  # elementos sin tocar, no se cierra como hecha. Cae en INCIERTO con
+  # `hueco=true`, asi que el bucle vuelve al planner a TERMINAR, con los
+  # nombres de los archivos que faltan delante — y esos nombres salen de
+  # `datos`, que no pasa por el recorte de MAX_HALLAZGO_CHARS.
+  #
+  # FALSA ALARMA ACEPTADA A CONCIENCIA: "borra los .tmp de Descargas"
+  # resuelto como un fs.list de TODO mas tres fs.delete dira que quedan
+  # 37 sin tocar. Se acepta por la regla del 2026-08-07 (si la unica
+  # forma de evitar una falsa alarma es leer la redaccion de la orden,
+  # acepta la falsa alarma) y porque el plan bueno para esa orden
+  # —fs.list con patron '*.tmp'— no la produce.
+  techo_cobertura: true
+
+  # --- UN PASO A LA VEZ (2026-08-19) --------------------------------
+  #
+  # El plan se usa como BORRADOR: se ejecuta su PRIMER paso y se vuelve
+  # a planificar viendo el estado real del disco.
+  #
+  # NO ES UNA IDEA NUEVA, es el diseno al pie de la letra ("por cada paso,
+  # EN EL MOMENTO DE EJECUTARLO, decidir la accion concreta viendo el
+  # estado actual"). El bucle lo cumplia solo a medias: replanificaba
+  # ante un fallo o ante un descubrimiento, pero los argumentos del paso
+  # 2 se escribian antes de que corriera el paso 1.
+  #
+  # POR QUE, medido el 19: con 3 tipos de archivo el planner acierta el
+  # plan entero (5/5), pero con 8 se degrada a 0.5 movimientos por ronda
+  # contra 2.4, y se atasca mirando (1.6 listados por ronda contra 1.0).
+  # No falla una herramienta: falla escribir 16 pasos correctos de una
+  # tirada sobre una carpeta vista a medias. Ya estaba avisado de que
+  # de un modelo local mediano no se espera una cadena larga fiable.
+  #
+  # QUE CUESTA: una llamada al planner por paso (~20 s aqui). La meta
+  # NO se rompe, porque mide fin-de-habla -> PRIMERA accion y esa no
+  # cambia; lo que crece es el tiempo total de la tarea. Y no anade ni
+  # una pregunta al usuario: la puerta de aprobacion ya es por paso.
+  #
+  # **ENCENDIDO EL 2026-08-19 (noche) CON NUMERO DELANTE.** Estuvo en
+  # false "mientras se mide" y ya se midio: 15 rondas por brazo, 48
+  # archivos de 8 tipos, contra el modo por lotes en la misma tanda.
+  #
+  #                          lotes      un paso
+  #   mueven 0 de 48         12/15        4/15    Fisher p = 0.0092
+  #   usa fs.move_many        3/15       11/15    Fisher p = 0.0092
+  #   mediana movidos            0          36
+  #   completas 48/48         3/15        5/15    p = 0.68 (RUIDO)
+  #   falsas COMPLETADA          0           0
+  #   pasos por ronda          5.3        13.1
+  #
+  # LO QUE DECIDE NO ES "completas", que es ruido, sino la DISTRIBUCION:
+  # el modo por lotes no hace trabajo parcial JAMAS -- doce rondas en
+  # cero exacto, es 48 o es 0. Un paso reparte: 5 completas, 6 parciales
+  # de 24-42 archivos, 4 en nada. La diferencia entre no hacer nada 12
+  # de 15 veces y 4 de 15 es la diferencia entre una funcion que no
+  # sirve y una que sirve casi siempre.
+  #
+  # Y NO SE COMPRA CON HONESTIDAD: cero falsas COMPLETADA en los DOS
+  # brazos. Las parciales cierran en `sin confirmar`, que es el estado
+  # que existe justo para eso.
+  #
+  # EL LIMITE DE ESTA EVIDENCIA, dicho aqui para que no se olvide: esta
+  # medida sobre UNA orden ("organiza por tipo") con 8 tipos, que es un
+  # escenario elegido por dificil. Que generalice a ordenes GUI o de
+  # ventanas es una apuesta, no un dato; por eso se corre la suite lenta
+  # con esto encendido antes de darlo por bueno.
+  un_paso_a_la_vez: true
+
+  # LA DUDA TAMBIEN ES UNA RAMA (2026-08-21). Cuando el juez responde
+  # "no lo se", cinco de los seis techos se apagan -- estan guardados por
+  # `veredicto is CUMPLIDO`, porque nacieron como guardias contra un si
+  # falso. Medido en el censo de ese dia (`e2e_organiza_grande 15 uno
+  # --tipos 8`): 6 de 15 rondas cerraron con los 48 archivos intactos y
+  # 23 turnos sin gastar, y `solo_se_preparo` daba {'fs.mkdir'} en las
+  # SEIS. El techo tenia la respuesta y no se le preguntaba.
+  #
+  # EL A/B YA HABLO (2026-08-21, `e2e_organiza_grande 15 uno duda
+  # --tipos 8`, 30 rondas, misma sesion, una sola clave de diferencia):
+  #     rondas que no mueven NADA .... 6/15 -> 0/15   Fisher p=0.0169
+  #     usa `fs.move_many` ........... 9/15 -> 15/15  Fisher p=0.0169
+  #     archivos movidos, MEDIA ...... 26.0 -> 41.2 de 48
+  #     falsas COMPLETADA ............ 0/15 en LOS DOS
+  #     tareas completas ............. 5/15 -> 6/15   p=1.00 (nada)
+  # Y EL AVISO QUE ESTABA ESCRITO AQUI SE CUMPLIO, casi literal: de las
+  # 6 rondas rescatadas del colapso, UNA completo y CINCO murieron
+  # contra un muro de presupuesto (+3 `hueco_sin_presupuesto`, +2
+  # timeout de 600 s). O sea que el cuello de botella se MOVIO, no
+  # desaparecio, y el que manda ahora es `max_pasos_de_tarea` (25, y la
+  # mediana de pasos de este brazo es 24: vive pegado al techo).
+  # Replicado ademas contra el censo del 21 sin el arreglo de
+  # `fs.move_many` (8/15 -> 0/15, p=0.0022): mismo signo y magnitud en
+  # dos tandas distintas. Es el unico numero de este banco replicado.
+  #
+  # ENCENDIDO POR DECISION DEL USUARIO (2026-08-21). Se le presento el
+  # balance completo -- 2.4x de pasos por tarea (mediana 24 contra 10),
+  # mas roce con el timeout, y `completas` SIN mejorar -- y el criterio
+  # con el que decidio es el del producto, no el de la medicion: un
+  # agente que actua sobre una PC tiene que ser fiable, y tardar el
+  # doble es aceptable si a cambio no se queda 6 de cada 15 veces sin
+  # tocar un archivo.
+  #
+  # LO QUE ESTO **NO** COMPRA, para que nadie lo lea de mas: no compra
+  # tareas TERMINADAS (5/15 vs 6/15 es ruido) ni compra honestidad, que
+  # ya estaba (cero falsas COMPLETADA apagado y encendido). Compra que
+  # el agente TRABAJE en vez de quedarse en nada. Sigue sin tocar el
+  # agujero de verdad, que es D4: la familia GUI, donde el sistema si
+  # afirma haber hecho lo que no hizo.
+  #
+  # SIGUE SIN SER UN INTERRUPTOR DE SEGURIDAD. Apagado, la tarea cierra
+  # igual de honesta (`sin confirmar`). Lo que cambia es cuanto trabaja,
+  # no que afirma.
+  techos_sobre_duda: true
+
+  # Presupuesto del modo de arriba. Es "cuantos pasos como maximo tiene
+  # una tarea", NO "cuantas veces me puedo equivocar": son bolsas
+  # distintas a proposito, porque ahi replanificar es el funcionamiento
+  # normal y no el sintoma de nada. Quien protege de verdad contra un
+  # bucle infinito en ese modo es `timeout_tarea_segundos`.
+  max_pasos_de_tarea: 25
+
+  # Fase 4.4: antes de CADA planificacion (la primera y las de replan),
+  # se le pasa al planner la lista de ventanas abiertas con su programa.
+  #
+  # NO ES app.list OTRA VEZ. app.list existe desde el 06 y esta medido
+  # inerte: el planner nunca la elige antes de escribir en una ventana,
+  # porque no se sabe ignorante del titulo. Esto es la misma informacion
+  # SIN que tenga que pedirla. Es el mismo arreglo que la Fase 2 hizo con
+  # la allowlist y las rutas_permitidas, que tambien se metieron en el
+  # prompt porque el modelo no podia adivinarlas.
+  #
+  # SOLO DATOS: ninguna instruccion sobre que hacer con la lista. Ver el
+  # aviso de hallazgo_en_replanificacion, que vale igual aqui.
+  #
+  # Respeta la politica de app.list: si esa herramienta esta prohibida,
+  # deshabilitada o en 'confirmar', no se enumera nada. Y los titulos los
+  # escriben OTRAS aplicaciones (la pestana de un navegador es una
+  # ventana), asi que entran vallados como contenido observado.
+  #
+  # EN true DESDE EL 2026-08-12, y el camino hasta aqui importa mas que
+  # el valor, porque estuvo en false dos dias por una razon que resulto
+  # ser correcta a medias.
+  #
+  # 11/08, PRIMERA VERSION (lista entera de ventanas):
+  #   GUI-abierta   0/4  -> 4/4   arregla justo lo que se buscaba
+  #   REGRESION-fs 10/10 -> 5/10  parte por la mitad "organiza mi carpeta
+  #                               de Descargas por tipo", que no tiene
+  #                               ventanas ni las menciona
+  #   -> apagado. Mismo patron que el prompt v8: funciona donde apunta y
+  #      se paga donde no apunta.
+  #
+  # 11/08, CON EL FILTRO (solo ventanas cuyo programa esta en la
+  # allowlist de uia.*, que son las que el agente puede conducir de
+  # verdad; baja la lista de ~10 lineas a 1):
+  #   GUI          10/10   igual que con la lista entera
+  #   REGRESION-fs 45/50   contra 50/50 sin el, Fisher p=0.028
+  #   -> LO QUE COSTABA ERA EL VOLUMEN, NO EL INFORMAR. Pero ese 10 %
+  #      residual es real, no ruido, y por eso siguio apagado.
+  #
+  # 12/08, LO QUE LO ENCIENDE: el A/B END-TO-END, 12 rondas, 72
+  # ejecuciones, juzgado sobre el disco y sobre el contenido del Bloc de
+  # notas (`python -m eval.e2e_ventanas --rondas 12`):
+  #   caso            OFF      ON     Fisher
+  #   gui-abierta     0/12   12/12    p = 7.4e-07   y 3x mas rapido
+  #   organiza       10/12    9/12    p = 1
+  #   gui-dos-pasos  12/12   12/12    control
+  #
+  # POR QUE ESO GANA AL 10 % DE ARRIBA, que es la unica parte discutible
+  # de esta decision: son dos preguntas distintas y la de abajo manda.
+  # La sonda mide la FORMA DEL PLAN; esto mide si la TAREA SALE. El modo
+  # de fallo de "organiza" es que el plan colapsa a `fs.list` a secas, y
+  # ESE caso el bucle lo recupera replanificando. El 10 % existe y no se
+  # ha desmentido; lo que dice el e2e es que no sobrevive al bucle.
+  # Es lo de siempre, en su version original: el bench no sustituye al test
+  # de aceptacion.
+  #
+  # OJO, LA TANDA DEL 11 NO SERVIA PARA ESTO: se corrio con el juez de
+  # objetivo roto (7 de sus 24 ejecuciones de "organiza" cerraron en
+  # COMPLETADA con la carpeta intacta) y daba 8/12 contra 5/12. Al
+  # arreglar el juez SUBEN LOS DOS BRAZOS, porque el bug no inflaba el
+  # marcador — paraba el bucle antes de que replanificara.
+  #
+  # PARA APAGARLO: basta poner false; el codigo del brazo OFF sigue
+  # probado y `eval/e2e_ventanas.py` mide los dos lados.
+  ventanas_en_contexto: true
+
+latencia:
+  # Metas de latencia. En hardware por debajo del Nivel C no son alcanzables
+  # con un planner de 7B; se registran igual para poder medir la brecha.
+  objetivo_stt_segundos: 1.0
+  objetivo_primer_paso_segundos: 1.5
+  objetivo_tts_segundos: 0.5
+
+logs:
+  nivel: INFO
+  directorio: logs

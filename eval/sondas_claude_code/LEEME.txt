@@ -1,0 +1,18 @@
+Sondas de JC-0003. Miden la superficie real de invocacion de Claude Code
+contra el binario instalado, no contra documentacion.
+
+  sonda_puerta.py      una peticion de aprobacion: como llega y como se
+                       contesta. Con --permitir responde allow, sin el
+                       responde deny. Con --extra se le pasan flags al
+                       binario (ahi va --permission-prompt-tool stdio).
+  sonda_dos_turnos.py  dos turnos en el MISMO proceso: mide si la sesion
+                       sigue viva tras el `result` y si el contexto
+                       persiste. Deniega el primero a proposito.
+  sonda_silencio.py    la tercera salida: llega la puerta y NO se
+                       contesta. Mide si la sesion espera o se rinde.
+
+Todas escriben en el directorio que se les pase como primer argumento.
+Usar un directorio DESECHABLE: la sonda de la puerta crea archivos de
+verdad cuando responde allow.
+
+Resultados medidos el 2026-08-21 con claude 2.1.239 (JC-0003).

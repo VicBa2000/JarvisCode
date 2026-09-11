@@ -1,0 +1,1736 @@
+<!doctype html>
+<html__ATRIBUTOS__>
+<head>
+<meta charset="utf-8">
+<title>Ajustes de Jarvis</title>
+<link rel="stylesheet" href="/tema.css">
+<link rel="stylesheet" href="/fuentes.css">
+<!-- LAS TRES HOJAS DE MAQUETA VAN SIEMPRE, Y ES OBLIGATORIO.
+     El selector de tema se aplica "ya": `pintaTema` solo cambia el
+     atributo `data-tema` del <html>. Si estas hojas se sirvieran
+     solo para el tema activo, elegir otro cambiaria el color al
+     instante y la maqueta NO -- y no daria ningun error, que es el
+     peor fallo posible. Cada regla esta dentro de
+     `:root[data-tema="x"]`, asi que las tres inactivas no pintan
+     nada. `jarvis` no tiene hoja: es la ausencia de las tres. -->
+<link rel="stylesheet" href="/temas/hacker.css">
+<link rel="stylesheet" href="/temas/despacho.css">
+<link rel="stylesheet" href="/temas/nexo.css">
+<style>
+/* =====================================================================
+   LOS AJUSTES, EN SU PROPIA VENTANA.
+
+   Antes era un desplegable encima de la consola y el usuario lo dijo:
+   "deberia abrir una pestaña aparte" y "se siente un poco complejo".
+   Las dos cosas son la misma: configurar y vigilar son tareas
+   distintas, y meterlas en la misma pantalla obliga a que una de ellas
+   quepa donde no cabe.
+
+   >>> ESCRITO PARA LA PRIMERA VEZ QUE ALGUIEN ABRE ESTO <<<
+   Tres secciones y en el orden de las preguntas que uno se hace, no en
+   el de nuestros modulos: que haga algo, que te oiga, que te avise. Lo
+   demas esta plegado bajo "Avanzado", y el porque de cada numero
+   medido esta plegado detras de un "¿por que?": es informacion que
+   salva a quien la busca y abruma a quien acaba de instalar esto.
+
+   Las fuentes estan en `puente/fuentes.css` y la maqueta de los otros
+   tres temas en `puente/temas/*.css`; los dos los enlazan esta pagina y
+   la consola. Lo de aqui es la maqueta del tema `jarvis`.
+   ===================================================================== */
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fondo); color: var(--texto);
+       font-family: var(--titular); font-size: 15px;
+       line-height: 1.55; }
+body::before { content:''; position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(1100px 600px at 50% -10%, rgba(var(--cian-rgb),.10), transparent 70%); }
+
+.hoja { position: relative; max-width: 860px; margin: 0 auto; padding: 30px 26px 90px; }
+
+header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+header h1 { margin: 0; font-size: 21px; font-weight: 700; letter-spacing: .2em;
+            color: var(--cian-max); text-shadow: 0 0 18px rgba(var(--cian-rgb),.45); }
+.meta { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; color: var(--tenue); }
+.intro { margin: 0 0 26px; font-size: 14px; color: var(--tenue); max-width: 62ch; }
+
+section { margin-bottom: 26px; padding: 20px 22px;
+          background: rgba(var(--azul-rgb),.045); border: 1px solid var(--linea);
+          box-shadow: inset 0 1px 0 rgba(var(--cian-alto-rgb),.18); }
+section > h2 { margin: 0 0 4px; font-size: 15px; font-weight: 600;
+               letter-spacing: .16em; color: var(--cian-alto); }
+section > .nota { margin: 0 0 18px; font-size: 13.5px; color: var(--tenue); max-width: 66ch; }
+
+/* Una fila = una pregunta. La etiqueta arriba y el control debajo: en dos
+   columnas, las etiquetas largas se parten y cuesta leer cual va con cual. */
+.fila { padding: 14px 0; border-top: 1px solid rgba(var(--cian-rgb),.10); }
+.fila:first-of-type { border-top: 0; }
+.fila > label.titulo { display: block; font-size: 14.5px; color: var(--cian-max);
+                       margin-bottom: 3px; cursor: default; }
+.fila .ayuda { margin: 0 0 10px; font-size: 13px; color: var(--tenue); max-width: 62ch; }
+.control { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+select, input[type=text], input[type=number], input[type=password] {
+  min-width: 260px; max-width: 100%; height: 38px; padding: 0 10px;
+  background: rgba(var(--panel-rgb),.8); color: var(--cian-max);
+  border: 1px solid rgba(var(--cian-rgb),.3); font-family: var(--mono); font-size: 12.5px; }
+input[type=number] { min-width: 110px; }
+textarea { width: 100%; min-height: 80px; padding: 9px 10px; resize: vertical;
+  background: rgba(var(--panel-rgb),.8); color: var(--cian-max);
+  border: 1px solid rgba(var(--cian-rgb),.3); font-family: var(--mono);
+  font-size: 12.5px; line-height: 1.65; }
+select:focus, input:focus, textarea:focus { outline: none; border-color: var(--cian); }
+
+/* El interruptor se lee de un vistazo; una casilla de 13 px no. */
+.palanca { position: relative; width: 52px; height: 28px; flex: none; cursor: pointer; }
+/* >>> EL INTERRUPTOR VA ENCIMA, Y LA PISTA NO RECIBE CLICS <<<
+   La primera version no encendia NINGUNA palanca de la pagina, y el
+   motivo no era JavaScript: `.pista` va DESPUES del input en el marcado
+   y tambien es `position:absolute; inset:0`, asi que se pintaba encima y
+   se comia todos los clics. El checkbox estaba debajo, invisible, sin
+   enterarse de nada. Un fallo mudo de manual: se ve bien, no da error, y
+   no hace nada.
+   Se arregla por los dos lados a proposito -- el `z-index` pone el input
+   arriba y el `pointer-events` deja pasar lo que caiga en la pista --
+   porque cualquiera de los dos solo basta mientras nadie toque el otro. */
+.palanca input { position: absolute; opacity: 0; width: 100%; height: 100%;
+                 margin: 0; cursor: pointer; z-index: 2; }
+.palanca .pista { position: absolute; inset: 0; border-radius: 999px;
+  pointer-events: none;
+  background: rgba(var(--panel-rgb),.9); border: 1px solid rgba(var(--cian-rgb),.3); transition: .16s; }
+.palanca .bola { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--tenue); transition: .16s; }
+.palanca input:checked + .pista { background: rgba(var(--cian-rgb),.18); border-color: var(--cian); }
+.palanca input:checked + .pista .bola { left: 28px; background: var(--cian);
+  box-shadow: 0 0 12px var(--cian); }
+.palancaTexto { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; color: var(--tenue); }
+
+button { height: 38px; padding: 0 18px; cursor: pointer;
+  border: 1px solid rgba(var(--cian-rgb),.42); background: rgba(var(--cian-rgb),.1);
+  color: var(--cian-max); font-family: 'Chakra Petch', sans-serif;
+  font-size: 12px; font-weight: 600; letter-spacing: .16em; }
+button:hover:not(:disabled) { background: rgba(var(--cian-rgb),.18); }
+button:disabled { opacity: .45; cursor: default; }
+button.suave { border-color: rgba(var(--cian-rgb),.22); background: transparent; color: var(--tenue); }
+
+/* El porque de cada numero medido va PLEGADO: salva a quien lo busca y
+   abruma a quien acaba de instalar el programa. */
+details.porque { margin-top: 9px; }
+details.porque > summary { cursor: pointer; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .12em; color: var(--muy-tenue); list-style: none; }
+details.porque > summary::-webkit-details-marker { display: none; }
+details.porque > summary::before { content: '▸ '; }
+details.porque[open] > summary::before { content: '▾ '; }
+details.porque > summary:hover { color: var(--cian-alto); }
+details.porque .cuerpo { margin-top: 7px; padding: 10px 12px; font-size: 13px;
+  color: var(--ambar-alto); background: rgba(var(--ambar-rgb),.05);
+  border-left: 2px solid rgba(var(--ambar-rgb),.35); max-width: 66ch; }
+
+/* --- el perimetro --------------------------------------------------
+   Se redisenó el 2026-08-26 porque el usuario no lo entendia: "la ui, ux
+   de eso no se entiende casi nada". Lo que fallaba no era el sitio sino
+   el vocabulario -- decia "PERIMETRO", "SUELO FIJO" y "eje", que son los
+   nombres de NUESTRO codigo. Aqui se dice que puede tocar y que no. */
+.zona { display: flex; gap: 12px; align-items: flex-start; padding: 13px 0;
+        border-top: 1px solid rgba(var(--cian-rgb),.10); }
+.zona:first-child { border-top: 0; }
+.zona .quePuede { flex: none; width: 132px; font-family: var(--mono);
+                  font-size: 10px; letter-spacing: .06em; line-height: 1.5;
+                  padding-top: 2px; }
+.zona .quePuede.mirar { color: var(--ambar-alto); }
+.zona .quePuede.nada  { color: var(--rojo-claro-alto); }
+.zona .cuerpo { flex: 1 1 auto; min-width: 0; }
+.zona .ruta { font-family: var(--mono); font-size: 12px; color: var(--cian-max);
+              word-break: break-all; }
+.zona .motivo { font-size: 12.5px; color: var(--tenue); margin-top: 2px; }
+.zona .coste { font-size: 12.5px; color: var(--ambar-alto); margin-top: 4px; }
+.zona .palanca { margin-top: 2px; }
+.leyenda { display: flex; flex-direction: column; gap: 8px; margin: 0 0 18px;
+           padding: 12px 14px; border: 1px solid rgba(var(--cian-rgb),.14);
+           background: rgba(var(--azul-rgb),.03); }
+.leyenda div { font-size: 13px; color: var(--tenue); line-height: 1.5; }
+.leyenda b { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; }
+.leyenda .mirar b { color: var(--ambar-alto); }
+.leyenda .nada b  { color: var(--rojo-claro-alto); }
+#detalleFijas summary { cursor: pointer; font-family: var(--mono);
+  font-size: 10.5px; letter-spacing: .12em; color: var(--muy-tenue);
+  padding: 12px 0; }
+#detalleFijas summary:hover { color: var(--cian-alto); }
+
+.cuando { font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+          color: var(--muy-tenue); }
+.cuando.reabrir, .cuando.reiniciar { color: var(--ambar); }
+
+.resultado { margin-top: 9px; font-size: 13px; max-width: 66ch; }
+.resultado.ok { color: var(--verde); }
+.resultado.mal { color: var(--rojo-claro); }
+.resultado .aparato { display: block; font-family: var(--mono); font-size: 11px;
+                      color: var(--tenue); margin-bottom: 2px; }
+
+#avanzado[hidden] { display: none; }
+#verAvanzado { margin-bottom: 26px; }
+
+/* La barra de guardar no se pierde al hacer scroll: en una pagina larga,
+   un boton que hay que ir a buscar es un cambio que se queda sin guardar. */
+.barra { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: flex; align-items: center; gap: 14px; padding: 13px 26px;
+  background: rgba(var(--barra-rgb),.94); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--linea); }
+.barra .interior { display: flex; align-items: center; gap: 14px;
+                   max-width: 860px; margin: 0 auto; width: 100%; }
+/* El boton caro de la barra. En reposo NO grita -- es un boton util, no
+   una alarma --; lo que se pone rojo es la CONFIRMACION, que es el clic
+   que de verdad cuesta. */
+#reiniciar { margin-left: auto; }
+#reiniciar.armado { color: var(--rojo-claro); border-color: var(--rojo-claro); }
+#reiniciar:disabled { opacity: .45; cursor: not-allowed; }
+
+#aviso { font-size: 13px; }
+#aviso.ok { color: var(--verde); }
+#aviso.mal { color: var(--rojo-claro); }
+#aviso.pendiente { color: var(--ambar-alto); }
+
+.insignia { display: inline-block; padding: 2px 8px; font-family: var(--mono);
+  font-size: 10px; letter-spacing: .12em; border: 1px solid currentColor; }
+.insignia.listo { color: var(--verde); }
+.insignia.roto  { color: var(--rojo-claro); }
+.insignia.apagado { color: var(--tenue); }
+
+/* Lo que ya tiene tu Claude Code. Una caja por servidor, porque hay que
+   leer TRES cosas antes de autorizar -- que es, como arranca y de que
+   archivo sale -- y en una linea no caben. */
+.encontrado { border: 1px solid var(--linea); padding: 10px 12px;
+              margin-bottom: 8px; background: var(--fondo-bajo); }
+.encontradoNombre { font-family: var(--mono); font-weight: 600;
+                    color: var(--titulo); }
+.encontradoAlcance { margin-left: 8px; font-size: 11px; letter-spacing: .12em;
+                     text-transform: uppercase; color: var(--tenue); }
+.encontradoOrden { font-family: var(--mono); font-size: 12px;
+                   color: var(--texto); margin-top: 4px;
+                   overflow-wrap: anywhere; }
+.encontradoOrigen { font-family: var(--mono); font-size: 11px;
+                    color: var(--tenue); margin-top: 2px;
+                    overflow-wrap: anywhere; }
+.encontradoAviso { font-size: 12px; color: var(--ambar-alto); margin-top: 6px; }
+.encontrado button { margin-top: 8px; }
+</style>
+</head>
+<body class="panel">
+<div class="hoja">
+
+<header>
+  <h1>AJUSTES</h1>
+  <span class="meta" id="donde"></span>
+</header>
+<p class="intro">
+  Se guardan en <span style="color:var(--texto)">config/ajustes.yaml</span>. El archivo con
+  los valores de fabrica no se toca, asi que siempre puedes volver borrando ese.
+</p>
+
+<div id="secciones" data-ensena="ajustes.secciones"></div>
+
+<!-- =================== PERIMETRO ===================
+     Estaba en la pantalla principal y el usuario lo movio aqui: es
+     configuracion, no vigilancia. Y se reescribio entero -- decia
+     "PERIMETRO", "SUELO FIJO" y "eje", que son los nombres de nuestro
+     codigo y no significan nada la primera vez. -->
+<section id="seccionZonas" data-ensena="ajustes.zonas">
+  <h2>QUE NO PUEDE TOCAR</h2>
+  <p class="nota">
+    Jarvis trabaja sobre la carpeta que le has dado. Fuera de ahi hay sitios
+    donde no se puede meter <strong style="color:var(--texto)">aunque tu se lo
+    pidas</strong>. Se detectan solos en cada arranque.
+  </p>
+
+  <div class="leyenda">
+    <div class="mirar"><b>PUEDE MIRAR, NO CAMBIAR</b> &mdash; carpetas de Windows y
+      de programas. Leerlas es inofensivo y hace falta (&ldquo;¿que version de
+      driver tengo?&rdquo;); lo que rompe el ordenador es escribir en ellas.</div>
+    <div class="nada"><b>NI MIRAR</b> &mdash; carpetas privadas. Aqui el riesgo no
+      es romper nada: es que <strong style="color:var(--ambar-alto)">lo de dentro
+      viaje</strong>. Todo lo que Jarvis lee se lo manda a Claude para poder
+      contestarte.</div>
+  </div>
+
+  <div id="zonasResumenCaja" class="ayuda" style="margin-bottom:6px"></div>
+
+  <div id="zonasOpcionales"></div>
+
+  <details id="detalleFijas">
+    <summary>VER LAS <span id="cuantasFijas">0</span> QUE NO SE PUEDEN QUITAR</summary>
+    <p class="ayuda">
+      Estas no son opcionales: son las que impiden romper el ordenador. Se
+      enseñan porque tienes derecho a ver de que se te protege &mdash; una
+      proteccion que no se puede mirar se parece demasiado a una que no existe.
+    </p>
+    <div id="zonasFijas"></div>
+  </details>
+
+  <div class="resultado" id="zonasAvisoCaja"></div>
+</section>
+
+<!-- =================== PROYECTOS ===================
+     ADR-0029: "hey jarvis, continua con el desarrollo del proyecto X".
+     Registro EXPLICITO y no una busqueda por el disco: lo que llega es
+     una transcripcion, y abrir la carpeta equivocada aqui significa
+     lanzar un agente sobre codigo que no era. -->
+<section id="seccionProyectos" data-ensena="ajustes.proyectos">
+  <h2>TUS PROYECTOS</h2>
+  <p class="nota">
+    Los que puedes abrir diciendo <em>&ldquo;hey jarvis, continua con el proyecto
+    X&rdquo;</em> &mdash; con X el nombre que le pongas abajo &mdash;, o
+    escribiendo esa misma frase en la consola. Al abrir
+    uno, Jarvis le pregunta solo una cosa para tener con que empezar, y te
+    lee la respuesta. Esa pregunta la escribes tu aqui mismo, y cada
+    proyecto de la lista puede tener la suya, o ninguna.
+  </p>
+
+  <div class="fila">
+    <label class="titulo" for="proyPorVoz">Dejar que lo pida por su nombre</label>
+    <p class="ayuda">
+      Apagado, esa frase le llega a Claude Code como cualquier otra y Jarvis
+      no se mete. Es el unico sitio donde Jarvis mira lo que le pides antes de
+      pasarlo, asi que lo enciendes tu. Vale para las dos formas: dicha y
+      escrita.
+    </p>
+    <div class="control">
+      <span class="palanca">
+        <input type="checkbox" id="proyPorVoz"><span class="pista"><span class="bola"></span></span>
+      </span>
+      <span class="palancaTexto" id="proyPorVozTexto"></span>
+    </div>
+  </div>
+
+  <!-- La frase global. La fila la pinta `filaDe()` con el ajuste del
+       catalogo, o sea la MISMA que saldria en Avanzado: aqui solo se
+       decide donde se ve. Va ENCIMA del interruptor porque el
+       interruptor dice "la de arriba", y hasta el 2026-09-05 eso era
+       mentira -- estaba en Avanzado, plegado. -->
+  <div id="filaRitualGlobal"></div>
+
+  <div class="fila">
+    <label class="titulo" for="proyRitualManda">Usar la de arriba en todos</label>
+    <p class="ayuda">
+      Normalmente gana la frase de cada proyecto, y la de arriba es solo para
+      los que no tengan la suya. Enciende esto y manda la de arriba SIEMPRE:
+      las que hayas escrito aqui abajo se quedan escritas y dejan de usarse
+      &mdash; cada una te lo dira. Si la de arriba esta vacia, entonces no
+      pregunta nada en ningun proyecto.
+    </p>
+    <div class="control">
+      <span class="palanca">
+        <input type="checkbox" id="proyRitualManda"><span class="pista"><span class="bola"></span></span>
+      </span>
+      <span class="palancaTexto" id="proyRitualMandaTexto"></span>
+    </div>
+  </div>
+
+  <div id="listaProyectos"></div>
+
+  <div class="fila" id="filaCandidatas" hidden>
+    <label class="titulo">Carpetas que hay donde guardas tus proyectos</label>
+    <p class="ayuda">Añade las que quieras poder abrir por voz.</p>
+    <div class="control" id="candidatasProyectos"></div>
+  </div>
+
+  <div class="fila">
+    <label class="titulo" for="proyNuevoAlias">Añadir uno a mano</label>
+    <div class="control">
+      <input type="text" id="proyNuevoAlias" placeholder="como lo llamas" autocomplete="off">
+      <input type="text" id="proyNuevaCarpeta" placeholder="la carpeta, por ejemplo C:\ruta\a\tu\proyecto" autocomplete="off">
+      <button id="proyAnadir" class="suave">AÑADIR</button>
+    </div>
+    <details class="porque">
+      <summary>¿POR QUE HAY QUE REGISTRARLOS?</summary>
+      <div class="cuerpo">
+        Porque lo que Jarvis recibe es una TRANSCRIPCION, no algo que hayas
+        tecleado: un nombre pegado puede llegar partido en dos palabras, o con
+        un guion, segun como lo digas.
+        Buscar por el disco a ver que se parece obligaria a decidir sola entre
+        carpetas parecidas, y equivocarse aqui significa poner a trabajar un
+        agente sobre codigo que no era. Si dos coinciden, Jarvis pregunta en
+        vez de elegir.
+      </div>
+    </details>
+  </div>
+</section>
+
+<section id="seccionGlosario" data-ensena="ajustes.glosario">
+  <h2>LO QUE JARVIS SE QUEDA</h2>
+  <p class="nota">
+    Estas son las unicas frases que <strong style="color:var(--ambar-alto)">no
+    llegan a Claude Code</strong>: las mira Jarvis y se las queda. Todo lo
+    demas que digas o escribas viaja entero. Se quedan solo cosas que el
+    cerebro NO PUEDE hacer &mdash; no tiene esta ventana, ni puede mudar su
+    propia sesion de carpeta, ni matar al proceso que lo conduce.
+  </p>
+  <div id="listaGlosario"></div>
+</section>
+
+<!-- =================== TELEGRAM ===================
+     Va aparte del resto porque no es un ajuste: es una credencial, se
+     guarda en otro archivo (fuera de git) y se COMPRUEBA contra el
+     servidor de Telegram al guardarla. -->
+<section id="seccionTelegram" data-ensena="ajustes.telegram">
+  <h2>AVISARME POR TELEGRAM</h2>
+  <p class="nota">
+    Opcional. Si Jarvis necesita tu permiso para algo y no le contestas, te
+    escribe al movil &mdash; pero <strong style="color:var(--ambar-alto)">solo avisa, no obedece</strong>:
+    no lee mensajes y no se le puede autorizar nada desde ahi. Quien controlase
+    ese chat no controlaria tu PC.
+  </p>
+
+  <div class="fila">
+    <label class="titulo" for="tgActivo">Mandarme avisos</label>
+    <div class="control">
+      <span class="palanca">
+        <input type="checkbox" id="tgActivo"><span class="pista"><span class="bola"></span></span>
+      </span>
+      <span class="palancaTexto" id="tgEstado"></span>
+    </div>
+  </div>
+
+  <div class="fila">
+    <label class="titulo" for="tgToken">Token del bot</label>
+    <p class="ayuda">
+      Se saca hablando con <span style="font-family:var(--mono)">@BotFather</span> en Telegram:
+      <span style="font-family:var(--mono)">/newbot</span>, le pones nombre y te da el token.
+    </p>
+    <div class="control">
+      <input type="password" id="tgToken" placeholder="1234567890:AA..." autocomplete="off">
+      <span class="meta" id="tgTokenPuesto"></span>
+    </div>
+    <details class="porque">
+      <summary>¿POR QUE NO SE VE EL QUE YA HAY?</summary>
+      <div class="cuerpo">
+        Un token es una credencial: quien lo tenga puede escribir en tu chat. No se
+        enseña ni se guarda en el registro, y vive en un archivo que git ignora.
+        Dejarlo en blanco NO borra el que ya tengas puesto.
+      </div>
+    </details>
+  </div>
+
+  <div class="fila">
+    <label class="titulo" for="tgChat">A que chat</label>
+    <p class="ayuda">
+      Tu identificador de Telegram. Se lo puedes preguntar a
+      <span style="font-family:var(--mono)">@userinfobot</span>.
+    </p>
+    <div class="control">
+      <input type="text" id="tgChat" placeholder="123456789" autocomplete="off">
+      <button id="tgProbar" class="suave">MANDARME UNA PRUEBA</button>
+    </div>
+    <div class="resultado" id="tgResultado"></div>
+  </div>
+
+  <div class="fila">
+    <label class="titulo" for="tgResponde">Dejarme contestarle desde el movil</label>
+    <p class="ayuda">
+      Cuando Jarvis te pregunte algo &mdash; una eleccion, un &ldquo;¿lo hago asi
+      o asa?&rdquo; &mdash; te llegan las opciones numeradas y contestas con el
+      numero.
+    </p>
+    <div class="control">
+      <span class="palanca">
+        <input type="checkbox" id="tgResponde"><span class="pista"><span class="bola"></span></span>
+      </span>
+      <span class="palancaTexto" id="tgRespondeTexto"></span>
+    </div>
+    <details class="porque">
+      <summary>¿QUE NO SE PUEDE HACER DESDE EL MOVIL?</summary>
+      <div class="cuerpo">
+        Dar permisos. Un borrado, un <span style="font-family:var(--mono)">git
+        push</span> o tocar algo fuera de la carpeta se autorizan delante del
+        ordenador, y punto. Tampoco se pueden mandar ordenes nuevas: eso va por
+        voz. El motivo es que quien tenga el token del bot puede escribir en ese
+        chat, asi que lo que se acepta esta acotado a propósito &mdash; lo peor
+        que puede pasar es que alguien conteste una pregunta de diseño en tu
+        nombre, no que te borre algo.
+      </div>
+    </details>
+  </div>
+</section>
+
+
+<!-- =================== MCP ===================
+     Va aparte del resto por lo mismo que Telegram: no es un ajuste, es
+     una lista de QUIEN puede actuar. Y por eso es blanca -- lo que no
+     este aqui no pasa. -->
+<section id="seccionMcp" data-ensena="ajustes.mcp">
+  <h2>SERVIDORES MCP</h2>
+  <p class="nota">
+    Los MCP le dan herramientas nuevas a Jarvis y con eso mucha potencia. Por
+    eso es una <strong style="color:var(--ambar-alto)">lista blanca</strong>: lo que no
+    aparezca aqui no se ejecuta. Un servidor no es una herramienta suelta &mdash;
+    decide el solo cuales ofrece y puede cambiarlas &mdash;, asi que lo que
+    autorizas es el servidor entero.
+  </p>
+
+  <div id="listaMcp"></div>
+
+  <div class="fila" id="filaVistos" hidden>
+    <label class="titulo">Han pedido algo y no estan en la lista</label>
+    <p class="ayuda">
+      Jarvis se lo ha denegado. Si los conoces, añadelos aqui.
+    </p>
+    <div class="control" id="vistosMcp"></div>
+  </div>
+
+  <!-- Lo que ya tiene declarado el Claude Code de esta maquina. Se LEE
+       de donde el mira: su config global y los .mcp.json de las carpetas
+       donde lo has usado. Se enseña, no se confia: autorizar es un clic
+       tuyo, y entra en "confirmar" como cualquier otro. -->
+  <div class="fila" id="filaEncontrados" hidden>
+    <label class="titulo">Los que ya tiene tu Claude Code</label>
+    <p class="ayuda">
+      Estan declarados en tu Claude Code de siempre, pero Jarvis no los deja
+      actuar hasta que tu lo digas. Se enseña de que archivo sale cada uno:
+      autorizar sin saberlo seria autorizar a ciegas.
+    </p>
+    <div class="control" id="encontradosMcp"></div>
+  </div>
+
+  <div class="fila">
+    <label class="titulo" for="mcpNuevo">Añadir uno a mano</label>
+    <div class="control">
+      <input type="text" id="mcpNuevo" placeholder="nombre del servidor" autocomplete="off">
+      <button id="mcpAnadir" class="suave">AÑADIR</button>
+    </div>
+    <details class="porque">
+      <summary>¿POR QUE HACE FALTA ESTA LISTA?</summary>
+      <div class="cuerpo">
+        Se midio el 2026-08-26: una herramienta de un MCP atravesaba la puerta
+        de Jarvis sin tocarla. Las protecciones miran el NOMBRE de la
+        herramienta (Write, Edit, Bash) y las rutas que nombra Claude Code; un
+        nombre de MCP no casa con ninguna de las dos, asi que caia en "permitir
+        por defecto" &mdash; incluso una que escribiera en C:\Windows. Las dos
+        capas fallaban a la vez, que es justo lo que las hacia dos.
+      </div>
+    </details>
+  </div>
+</section>
+
+</div>
+
+<div class="barra">
+  <div class="interior">
+    <button id="guardar" data-ensena="ajustes.guardar">GUARDAR</button>
+    <button id="recargar" class="suave">DESHACER</button>
+    <!-- Separado de los otros dos a proposito: guardar y deshacer son
+         reversibles, reiniciar se lleva la sesion de Claude Code por
+         delante. Un boton caro pegado a dos baratos se pulsa por
+         inercia. -->
+    <span id="aviso"></span>
+    <button id="reiniciar" class="suave" data-ensena="ajustes.reiniciar">REINICIAR JARVIS</button>
+  </div>
+</div>
+
+<script>
+// La ficha la incrusta el servidor. Ver el comentario largo en consola.html:
+// sin ella, cualquier pestaña abierta podria conducir a Claude Code.
+const FICHA = "__FICHA__";
+function pide(ruta, opciones) {
+  const o = Object.assign({}, opciones || {});
+  o.headers = Object.assign({}, o.headers || {}, {"X-Jarvis-Ficha": FICHA});
+  return fetch(ruta, o);
+}
+
+// TODO con textContent. Aqui entran nombres de dispositivos de audio, que
+// los escribe el fabricante del aparato: contenido observado como cualquier
+// otro, y no se interpreta jamas.
+const secciones = document.getElementById("secciones");
+const aviso = document.getElementById("aviso");
+const cambios = new Map();
+
+const CUANDO = {
+  ya: "se aplica al momento",
+  reabrir: "hace falta reabrir la sesion",
+  reiniciar: "hace falta reiniciar Jarvis",
+};
+
+function di(texto, clase) {
+  aviso.className = clase || "";
+  aviso.textContent = texto;
+}
+
+// >>> EL TEMA SE PINTA EN CALIENTE, EN LOS DOS DOCUMENTOS <<<
+// El servidor ya estampa `data-tema` al servir la pagina, que es lo que
+// evita el fogonazo cian al abrir. Pero al CAMBIARLO desde aqui no puede
+// hacer nada: las dos paginas ya estan cargadas. Recargarlas seria lo
+// facil y tiene un precio que se ve -- te devuelve a la pestaña de la
+// consola y pierdes donde estabas leyendo --, asi que se mueve el
+// atributo a mano y el navegador repinta solo.
+//
+// Y SON DOS DOCUMENTOS: los ajustes viven en un `iframe`, o sea que
+// cambiar solo el de aqui dejaria la consola de detras con el tema
+// viejo. Es exactamente el fallo por el que la paleta dejo de estar
+// duplicada (ver `puente/tema.css`).
+function pintaTema(nombre) {
+  const poner = (doc) => {
+    if (!doc) return;
+    if (nombre && nombre !== "jarvis") {
+      doc.documentElement.setAttribute("data-tema", nombre);
+    } else {
+      doc.documentElement.removeAttribute("data-tema");
+    }
+  };
+  poner(document);
+  // Si no estamos dentro de un iframe, `parent` es esta misma ventana y
+  // esto no hace nada. No se comprueba: hacerlo dos veces es inofensivo
+  // y no comprobarlo evita adivinar en que contexto corremos.
+  try { poner(window.parent.document); } catch (e) { /* otro origen */ }
+}
+
+function palanca(marcado, alCambiar) {
+  const caja = document.createElement("span");
+  caja.className = "palanca";
+  const entrada = document.createElement("input");
+  entrada.type = "checkbox";
+  entrada.checked = !!marcado;
+  const pista = document.createElement("span");
+  pista.className = "pista";
+  const bola = document.createElement("span");
+  bola.className = "bola";
+  pista.appendChild(bola);
+  caja.appendChild(entrada);
+  caja.appendChild(pista);
+  const texto = document.createElement("span");
+  texto.className = "palancaTexto";
+  const pinta = () => { texto.textContent = entrada.checked ? "SI" : "NO"; };
+  pinta();
+  entrada.addEventListener("change", () => { pinta(); alCambiar(entrada.checked); });
+  return {caja, entrada, texto};
+}
+
+function porque(texto) {
+  const d = document.createElement("details");
+  d.className = "porque";
+  const s = document.createElement("summary");
+  s.textContent = "¿POR QUE?";
+  const c = document.createElement("div");
+  c.className = "cuerpo";
+  c.textContent = texto;
+  d.appendChild(s);
+  d.appendChild(c);
+  return d;
+}
+
+function controlDe(aj, alCambiar) {
+  if (aj.tipo === "interruptor") {
+    const p = palanca(aj.valor, alCambiar);
+    const caja = document.createElement("div");
+    caja.className = "control";
+    caja.appendChild(p.caja);
+    caja.appendChild(p.texto);
+    return {caja, leer: () => p.entrada.checked, entrada: p.entrada};
+  }
+
+  const caja = document.createElement("div");
+  caja.className = "control";
+  let entrada;
+
+  if (aj.tipo === "eleccion") {
+    entrada = document.createElement("select");
+    // Si lo configurado ya no esta enchufado, se añade MARCADO en vez de
+    // esconderlo: el desplegable tiene que enseñar lo que esta corriendo,
+    // no una version bonita de ello.
+    const valores = aj.opciones.map(o => o.valor);
+    const lista = aj.opciones.slice();
+    if (aj.valor && !valores.includes(aj.valor)) {
+      lista.unshift({valor: aj.valor, etiqueta: aj.valor + "  (ya no esta conectado)"});
+    }
+    for (const o of lista) {
+      const op = document.createElement("option");
+      op.value = o.valor;
+      op.textContent = o.etiqueta;
+      if (o.valor === aj.valor) op.selected = true;
+      entrada.appendChild(op);
+    }
+  } else if (aj.tipo === "numero") {
+    entrada = document.createElement("input");
+    entrada.type = "number";
+    entrada.step = "0.1";
+    if (aj.minimo !== null) entrada.min = aj.minimo;
+    if (aj.maximo !== null) entrada.max = aj.maximo;
+    entrada.value = aj.valor;
+  } else if (aj.tipo === "lista") {
+    entrada = document.createElement("textarea");
+    entrada.value = (aj.valor || []).join(", ");
+  } else if (aj.tipo === "parrafo") {
+    // Un `input` de una linea para algo que se le MANDA a Claude Code
+    // esconde el final de lo que escribiste: el ritual puede ser un
+    // parrafo entero ("mirate el roadmap y dime que toca"), y una caja
+    // que solo ensena el principio es la misma caja de la consola que
+    // el usuario ya corrigio el 2026-09-03.
+    entrada = document.createElement("textarea");
+    entrada.rows = 2;
+    entrada.value = aj.valor === null ? "" : String(aj.valor);
+  } else {
+    entrada = document.createElement("input");
+    entrada.type = "text";
+    entrada.value = aj.valor === null ? "" : String(aj.valor);
+  }
+  entrada.addEventListener("change", () => alCambiar(entrada.value));
+  caja.appendChild(entrada);
+
+  if (aj.unidad) {
+    const u = document.createElement("span");
+    u.className = "meta";
+    u.textContent = aj.unidad;
+    caja.appendChild(u);
+  }
+  return {caja, leer: () => entrada.value, entrada};
+}
+
+function filaDe(aj) {
+  const fila = document.createElement("div");
+  fila.className = "fila";
+
+  const titulo = document.createElement("label");
+  titulo.className = "titulo";
+  titulo.textContent = aj.etiqueta;
+  fila.appendChild(titulo);
+
+  if (aj.ayuda) {
+    const ayuda = document.createElement("p");
+    ayuda.className = "ayuda";
+    ayuda.textContent = aj.ayuda;
+    fila.appendChild(ayuda);
+  }
+
+  const control = controlDe(aj, valor => cambios.set(aj.clave, valor));
+
+  // >>> EL BOTON DE PROBAR, QUE ES LO QUE HACE SEGURO ELEGIR AQUI <<<
+  // Un desplegable de microfonos sin forma de probarlo reparte un fallo
+  // mudo: hay entradas que aceptan o entregan silencio SIN dar error.
+  let salida = null;
+  if (aj.prueba) {
+    const boton = document.createElement("button");
+    boton.className = "suave";
+    boton.textContent = aj.prueba === "entrada" ? "PROBAR" : "PROBAR";
+    salida = document.createElement("div");
+    salida.className = "resultado";
+    boton.addEventListener("click", async () => {
+      boton.disabled = true;
+      salida.className = "resultado";
+      salida.textContent = aj.prueba === "entrada"
+        ? "grabando dos segundos... di algo" : "sonando...";
+      try {
+        const r = await (await pide("/ajustes/probar", {
+          method: "POST", headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({tipo: aj.prueba, dispositivo: control.leer()}),
+        })).json();
+        const bien = r.ok && r.veredicto === "ok";
+        salida.className = "resultado " + (bien ? "ok" : "mal");
+        salida.textContent = "";
+        if (r.dispositivo) {
+          const ap = document.createElement("span");
+          ap.className = "aparato";
+          ap.textContent = r.dispositivo;
+          salida.appendChild(ap);
+        }
+        let texto = r.motivo || r.mensaje || "";
+        if (r.nivel_dbfs !== null && r.nivel_dbfs !== undefined) {
+          texto = "nivel " + r.nivel_dbfs + " dBFS. " + texto;
+        }
+        salida.appendChild(document.createTextNode(texto));
+      } catch (e) {
+        salida.className = "resultado mal";
+        salida.textContent = "no se pudo probar: " + e;
+      } finally { boton.disabled = false; }
+    });
+    control.caja.appendChild(boton);
+  }
+
+  const cuando = document.createElement("span");
+  cuando.className = "cuando " + aj.aplica;
+  cuando.textContent = CUANDO[aj.aplica] || aj.aplica;
+  control.caja.appendChild(cuando);
+
+  fila.appendChild(control.caja);
+  if (salida) fila.appendChild(salida);
+  if (aj.aviso) fila.appendChild(porque(aj.aviso));
+  return fila;
+}
+
+function seccionDe(grupo) {
+  const sec = document.createElement("section");
+  const h = document.createElement("h2");
+  h.textContent = grupo.titulo.toUpperCase();
+  sec.appendChild(h);
+  if (grupo.nota) {
+    const n = document.createElement("p");
+    n.className = "nota";
+    n.textContent = grupo.nota;
+    sec.appendChild(n);
+  }
+  for (const aj of grupo.ajustes) {
+    // La frase del ritual se pinta en TUS PROYECTOS, junto a las
+    // filas que gobierna. Se salta aqui y no se quita del catalogo:
+    // el ajuste sigue siendo uno, cambia donde se ve.
+    if (aj.clave === CLAVE_RITUAL) continue;
+    sec.appendChild(filaDe(aj));
+  }
+  return sec;
+}
+
+async function carga() {
+  cambios.clear();
+  di("");
+  secciones.textContent = "";
+  let datos;
+  try {
+    datos = await (await pide("/ajustes.json")).json();
+  } catch (e) {
+    di("no se pudieron leer los ajustes: " + e, "mal");
+    return;
+  }
+  document.getElementById("donde").textContent = datos.directorio || "";
+
+  const avanzados = [];
+  for (const grupo of datos.grupos) {
+    if (grupo.clave === "avanzado") { avanzados.push(grupo); continue; }
+    secciones.appendChild(seccionDe(grupo));
+  }
+  // Lo avanzado nace PLEGADO. Es lo que separa un panel que se entiende
+  // de una lista de trece cosas que no sabes si tienes que tocar.
+  if (avanzados.length) {
+    const boton = document.createElement("button");
+    boton.className = "suave";
+    boton.id = "verAvanzado";
+    boton.textContent = "MOSTRAR AJUSTES AVANZADOS";
+    const caja = document.createElement("div");
+    caja.id = "avanzado";
+    caja.hidden = true;
+    for (const g of avanzados) caja.appendChild(seccionDe(g));
+    boton.addEventListener("click", () => {
+      caja.hidden = !caja.hidden;
+      boton.textContent = caja.hidden ? "MOSTRAR AJUSTES AVANZADOS"
+                                      : "OCULTAR AJUSTES AVANZADOS";
+    });
+    secciones.appendChild(boton);
+    secciones.appendChild(caja);
+  }
+  // >>> Y AQUI SE MUDA LA FRASE GLOBAL <<<
+  // Se busca en TODOS los grupos y no en uno fijo: si algun dia
+  // cambia de grupo en el catalogo, esto la sigue encontrando en vez
+  // de dejar el hueco vacio sin dar un error.
+  const hueco = document.getElementById("filaRitualGlobal");
+  hueco.textContent = "";
+  for (const grupo of datos.grupos) {
+    for (const aj of grupo.ajustes) {
+      if (aj.clave !== CLAVE_RITUAL) continue;
+      const fila = filaDe(aj);
+      // Al editarla hay que refrescar lo que las filas de abajo
+      // ENSENAN de ella: el placeholder de cada caja y el texto con
+      // el que se prerrellena "le pregunta otra cosa". Si no, la
+      // lista seguiria ofreciendo la frase vieja.
+      const caja = fila.querySelector("textarea");
+      if (caja) caja.addEventListener("input", () => {
+        ritualGlobal = caja.value;
+        pintaProyectos();
+      });
+      hueco.appendChild(fila);
+    }
+  }
+
+  await cargaGlosario();
+  await cargaZonas();
+  await cargaProyectos();
+  await cargaTelegram();
+  await cargaMcp();
+}
+
+// --- Telegram --------------------------------------------------------
+const tgActivo = document.getElementById("tgActivo");
+const tgToken = document.getElementById("tgToken");
+const tgChat = document.getElementById("tgChat");
+const tgResultado = document.getElementById("tgResultado");
+const tgResponde = document.getElementById("tgResponde");
+
+function pintaResponde() {
+  document.getElementById("tgRespondeTexto").textContent =
+    tgResponde.checked ? "SI" : "NO";
+}
+tgResponde.addEventListener("change", () => {
+  pintaResponde();
+  cambios.set("__telegram__", true);
+});
+
+function pintaEstadoTelegram(t) {
+  const marca = document.getElementById("tgEstado");
+  const texto = {listo: "LISTO", roto: "NO FUNCIONA",
+                 sin_configurar: "SIN CONFIGURAR"}[t.estado] || t.estado;
+  marca.textContent = texto + (t.detalle ? " — " + t.detalle : "");
+  marca.style.color = t.estado === "listo" ? "var(--verde)"
+                    : t.estado === "roto" ? "var(--rojo-claro)" : "var(--tenue)";
+  document.getElementById("tgTokenPuesto").textContent = t.hay_token
+    ? "ya hay uno puesto, acaba en …" + t.token_acaba_en
+    : "todavia no hay token";
+}
+
+async function cargaTelegram() {
+  let t;
+  try { t = await (await pide("/telegram")).json(); }
+  catch (e) { return; }
+  tgActivo.checked = !!t.activo;
+  tgResponde.checked = !!t.responde;
+  pintaResponde();
+  tgChat.value = t.chat_id || "";
+  tgToken.value = "";      // NUNCA se rellena: no lo tenemos ni lo queremos
+  pintaEstadoTelegram(t);
+}
+
+async function guardaTelegram(probar) {
+  tgResultado.className = "resultado";
+  tgResultado.textContent = probar ? "mandando..." : "guardando...";
+  let t;
+  try {
+    t = await (await pide("/telegram", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        activo: tgActivo.checked,
+        responde: tgResponde.checked,
+        token: tgToken.value,     // vacio = deja el que ya habia
+        chat_id: tgChat.value.trim(),
+        probar: !!probar,
+      }),
+    })).json();
+  } catch (e) {
+    tgResultado.className = "resultado mal";
+    tgResultado.textContent = "no se pudo guardar: " + e;
+    return false;
+  }
+  pintaEstadoTelegram(t);
+  tgResponde.checked = !!t.responde;
+  pintaResponde();
+  tgToken.value = "";
+  if (t.prueba) {
+    const bien = t.prueba.startsWith("listo");
+    tgResultado.className = "resultado " + (bien ? "ok" : "mal");
+    tgResultado.textContent = bien
+      ? "Mandado. Mira tu Telegram: si no te ha llegado, el chat no es ese."
+      : t.prueba;
+  } else {
+    tgResultado.className = "resultado " + (t.estado === "roto" ? "mal" : "ok");
+    tgResultado.textContent = t.estado === "roto"
+      ? "Guardado, pero no funciona: " + t.detalle
+      : (t.estado === "listo" ? "Guardado y comprobado." : "Guardado.");
+  }
+  return t.estado !== "roto";
+}
+
+document.getElementById("tgProbar").addEventListener("click", () => guardaTelegram(true));
+for (const el of [tgActivo, tgChat, tgToken]) {
+  el.addEventListener("change", () => cambios.set("__telegram__", true));
+}
+
+// --- El perimetro ----------------------------------------------------
+//
+// Los datos son los mismos de siempre (`/zonas`); lo que cambia es el
+// vocabulario. "eje: sistema" pasa a "PUEDE MIRAR, NO CAMBIAR", que es
+// lo que de verdad significa para quien lo lee.
+const zonasOpcionales = document.getElementById("zonasOpcionales");
+const zonasFijas = document.getElementById("zonasFijas");
+const zonasAvisoCaja = document.getElementById("zonasAvisoCaja");
+let zonasElegidas = new Set();
+
+function filaZona(zona, conPalanca) {
+  const fila = document.createElement("div");
+  fila.className = "zona";
+
+  const privada = zona.eje === "privada";
+  const que = document.createElement("div");
+  que.className = "quePuede " + (privada ? "nada" : "mirar");
+  que.textContent = privada ? "NI MIRAR" : "PUEDE MIRAR,\nNO CAMBIAR";
+  que.style.whiteSpace = "pre-line";
+  fila.appendChild(que);
+
+  const cuerpo = document.createElement("div");
+  cuerpo.className = "cuerpo";
+  const ruta = document.createElement("div");
+  ruta.className = "ruta";
+  ruta.textContent = zona.ruta;
+  cuerpo.appendChild(ruta);
+  if (zona.motivo) {
+    const motivo = document.createElement("div");
+    motivo.className = "motivo";
+    motivo.textContent = zona.motivo;
+    cuerpo.appendChild(motivo);
+  }
+  // >>> EL COSTE VA SIEMPRE Y ANTES DE MARCAR NADA <<<
+  // Una casilla sin su coste es una casilla que se marca sin entenderla.
+  if (zona.coste) {
+    const coste = document.createElement("div");
+    coste.className = "coste";
+    coste.textContent = "Si la bloqueas: " + zona.coste;
+    cuerpo.appendChild(coste);
+  }
+  fila.appendChild(cuerpo);
+
+  if (conPalanca) {
+    const caja = document.createElement("span");
+    caja.className = "palanca";
+    const entrada = document.createElement("input");
+    entrada.type = "checkbox";
+    entrada.checked = !!zona.aceptada;
+    const pista = document.createElement("span");
+    pista.className = "pista";
+    const bola = document.createElement("span");
+    bola.className = "bola";
+    pista.appendChild(bola);
+    caja.appendChild(entrada);
+    caja.appendChild(pista);
+    entrada.addEventListener("change", () => {
+      if (entrada.checked) zonasElegidas.add(zona.ruta);
+      else zonasElegidas.delete(zona.ruta);
+      cambios.set("__zonas__", true);
+    });
+    fila.appendChild(caja);
+  }
+  return fila;
+}
+
+async function cargaZonas() {
+  let z;
+  try { z = await (await pide("/zonas")).json(); }
+  catch (e) { return; }
+  const caja = document.getElementById("zonasResumenCaja");
+  if (!z.hay_suelo) {
+    caja.textContent = "Esta sesion corre SIN proteccion de carpetas.";
+    caja.style.color = "var(--rojo-claro)";
+    return;
+  }
+  caja.style.color = "";
+  caja.textContent = z.obligatorias.length + " fijas y " +
+    z.opcionales.length + " que puedes elegir.";
+  document.getElementById("cuantasFijas").textContent = z.obligatorias.length;
+
+  zonasElegidas = new Set(z.opcionales.filter(o => o.aceptada).map(o => o.ruta));
+  zonasOpcionales.textContent = "";
+  for (const zona of z.opcionales) {
+    zonasOpcionales.appendChild(filaZona(zona, true));
+  }
+  zonasFijas.textContent = "";
+  for (const zona of z.obligatorias) {
+    zonasFijas.appendChild(filaZona(zona, false));
+  }
+}
+
+async function guardaZonas() {
+  let r;
+  try {
+    r = await (await pide("/zonas", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({rutas: [...zonasElegidas]}),
+    })).json();
+  } catch (e) { return "no se pudieron guardar las carpetas: " + e; }
+  if (!r.ok) return r.motivo || "no se pudieron guardar las carpetas";
+
+  // >>> LO QUE SE DICE AQUI ES LO MEDIDO, NO UN "listo" GENERICO <<<
+  // Medido el 2026-08-24: un cambio no queda aplicado del todo hasta
+  // reabrir la sesion, EN LAS DOS DIRECCIONES. La puerta ya deniega lo
+  // recien marcado, pero `Read` no pasa por la puerta, asi que para una
+  // carpeta privada eso no basta.
+  zonasAvisoCaja.className = "resultado " + (r.hace_falta_reabrir ? "" : "ok");
+  if (r.hace_falta_reabrir) {
+    zonasAvisoCaja.style.color = "var(--ambar-alto)";
+    zonasAvisoCaja.textContent =
+      "Guardado. Para que se aplique del todo, reinicia Jarvis: lo que " +
+      "acabas de bloquear ya se deniega al escribir, pero LEER no pasa por " +
+      "esa comprobacion.";
+  } else {
+    zonasAvisoCaja.style.color = "";
+    zonasAvisoCaja.textContent = "Guardado y aplicado.";
+  }
+  await cargaZonas();
+  return null;
+}
+
+// --- Proyectos (ADR-0029) --------------------------------------------
+//
+// REGISTRO EXPLICITO. Las carpetas de la raiz se OFRECEN, no se
+// registran: descubrir es barato, abrir una que nadie declaro es lo que
+// no se hace.
+const listaProyectos = document.getElementById("listaProyectos");
+const proyPorVoz = document.getElementById("proyPorVoz");
+const proyRitualManda = document.getElementById("proyRitualManda");
+
+function pintaPorVoz() {
+  document.getElementById("proyPorVozTexto").textContent =
+    proyPorVoz.checked ? "SI" : "NO";
+}
+proyPorVoz.addEventListener("change", () => {
+  pintaPorVoz();
+  cambios.set("__proyectos__", true);
+});
+
+function pintaRitualManda() {
+  document.getElementById("proyRitualMandaTexto").textContent =
+    proyRitualManda.checked ? "SI" : "NO";
+}
+proyRitualManda.addEventListener("change", () => {
+  // La bandera se actualiza AQUI y no solo la casilla: `pintaProyectos`
+  // lee la variable, no el DOM, y sin esta linea la lista se repintaria
+  // con el valor de antes -- o sea el aviso saldria un clic tarde y
+  // desapareceria un clic tarde. Justo lo que este aviso viene a evitar.
+  ritualManda = proyRitualManda.checked;
+  pintaRitualManda();
+  cambios.set("__proyectos__", true);
+  // >>> SE REPINTA LA LISTA AL INSTANTE, Y NO AL GUARDAR <<<
+  // El interruptor esta a dos dedos de las filas que apaga: si el aviso
+  // no sale hasta que le das a GUARDAR, entre una cosa y otra la
+  // pantalla dice que esas frases se usan cuando ya no. Es el mismo
+  // motivo por el que esto vive aqui y no en Avanzado.
+  pintaProyectos();
+});
+const candidatasProyectos = document.getElementById("candidatasProyectos");
+let proyectos = [];
+let actualProyecto = "";
+// Lo que Jarvis pregunta hoy si un proyecto no dice otra cosa. Llega del
+// servidor y no se calcula aqui: la resuelve `voz.proyecto` mirando tres
+// fuentes, y una copia en JS seria una cuarta que se desincroniza sola.
+// La clave del ajuste de la frase global. Se nombra UNA vez: la usan
+// el salto de `seccionDe` y el pintado de aqui abajo, y si se
+// escribiera dos veces bastaria con cambiar una para que la fila
+// desapareciera de las dos partes sin dar un error.
+const CLAVE_RITUAL = "proyectos.ritual";
+let ritualGlobal = "";
+// Si la global PISA a las de cada proyecto. Llega del servidor con la
+// lista, igual que `ritualGlobal`: calcularlo aqui seria una segunda
+// copia de una regla que ya vive en `nucleo.proyectos`.
+let ritualManda = false;
+
+function pintaProyectos() {
+  listaProyectos.textContent = "";
+  if (!proyectos.length) {
+    const vacio = document.createElement("p");
+    vacio.className = "ayuda";
+    vacio.textContent = "Ninguno todavia. Añade el primero abajo.";
+    listaProyectos.appendChild(vacio);
+  }
+  proyectos.forEach((pr, i) => {
+    const fila = document.createElement("div");
+    fila.className = "fila";
+    const titulo = document.createElement("label");
+    titulo.className = "titulo";
+    titulo.textContent = pr.alias;
+    if (actualProyecto && pr.carpeta &&
+        pr.carpeta.toLowerCase() === actualProyecto.toLowerCase()) {
+      const marca = document.createElement("span");
+      marca.className = "cuando";
+      marca.textContent = "  — es el que esta abierto";
+      titulo.appendChild(marca);
+    }
+    fila.appendChild(titulo);
+
+    const ruta = document.createElement("p");
+    ruta.className = "ayuda";
+    ruta.style.fontFamily = "var(--mono)";
+    // Una carpeta que ya no esta se dice AQUI y no cuando lo intentes por
+    // voz: enterarte con el microfono abierto es enterarte tarde.
+    ruta.textContent = pr.carpeta + (pr.existe ? "" : "   (ya no existe)");
+    if (!pr.existe) ruta.style.color = "var(--rojo-claro)";
+    fila.appendChild(ruta);
+
+    // >>> QUE LE PREGUNTA AL ABRIR ESTE, Y SON TRES ESTADOS <<<
+    // Un desplegable y no una caja de texto a secas: "hereda la de
+    // siempre" y "no preguntes nada" se verian LAS DOS como una caja
+    // vacia, y son respuestas contrarias -- una manda un turno y la otra
+    // no manda ninguno. Esa es la regla de este arbol, y es tambien lo
+    // que ya se corrigio en la puerta el 2026-08-29: la tercera salida
+    // estaba en el modelo y no en la pantalla, asi que nadie la elegia.
+    // Un desplegable a secas debajo de una ruta no dice de que va. Se
+    // vio en la captura: la fila enseñaba el alias, su carpeta y un
+    // "le pregunta otra cosa..." sin sujeto.
+    const rotulo = document.createElement("p");
+    rotulo.className = "ayuda";
+    rotulo.textContent = "Al abrir este:";
+    fila.appendChild(rotulo);
+
+    const filaRitual = document.createElement("div");
+    filaRitual.className = "control";
+    const modo = document.createElement("select");
+    for (const par of [["hereda", "le pregunta lo de siempre"],
+                       ["propia", "le pregunta otra cosa…"],
+                       ["nada", "no le pregunta nada"]]) {
+      const op = document.createElement("option");
+      op.value = par[0];
+      op.textContent = par[1];
+      modo.appendChild(op);
+    }
+    const suya = document.createElement("textarea");
+    suya.rows = 2;
+    suya.placeholder = ritualGlobal;
+    modo.value = pr.ritual === null || pr.ritual === undefined ? "hereda"
+               : (pr.ritual === "" ? "nada" : "propia");
+    suya.value = modo.value === "propia" ? pr.ritual : "";
+    suya.hidden = modo.value !== "propia";
+    modo.addEventListener("change", () => {
+      if (modo.value === "hereda") pr.ritual = null;
+      else if (modo.value === "nada") pr.ritual = "";
+      else {
+        // Se PRERRELLENA con la global en vez de dejar la caja vacia:
+        // vacia, elegir "otra cosa" significaria "nada" sin quererlo, y
+        // ademas se edita mejor desde algo que ya funciona.
+        if (!suya.value.trim()) suya.value = ritualGlobal;
+        pr.ritual = suya.value;
+      }
+      suya.hidden = modo.value !== "propia";
+      cambios.set("__proyectos__", true);
+    });
+    suya.addEventListener("input", () => {
+      // Si la vacias del todo, esto pasa a significar "no preguntes
+      // nada" -- que es lo que de verdad va a hacer -- y al recargar el
+      // desplegable lo dira. No es una reinterpretacion: una frase vacia
+      // y no mandar nada son lo mismo.
+      pr.ritual = suya.value;
+      cambios.set("__proyectos__", true);
+    });
+    filaRitual.appendChild(modo);
+    filaRitual.appendChild(suya);
+    fila.appendChild(filaRitual);
+
+    // >>> LO QUE ESTA FILA HACE DE VERDAD AHORA MISMO <<<
+    // Solo en las filas que el override PISA, o sea las que tienen algo
+    // dicho. En una que hereda no cambia nada, y un aviso ahi seria
+    // ruido en el sitio donde el ruido tapa lo que importa.
+    if (ritualManda && pr.ritual !== null && pr.ritual !== undefined) {
+      const pisada = document.createElement("p");
+      pisada.className = "ayuda";
+      pisada.style.color = "var(--ambar-alto)";
+      pisada.textContent = "Ahora no se usa: manda la frase de arriba.";
+      fila.appendChild(pisada);
+    }
+
+    const caja = document.createElement("div");
+    caja.className = "control";
+    const quitar = document.createElement("button");
+    quitar.className = "suave";
+    quitar.textContent = "QUITAR";
+    quitar.addEventListener("click", () => {
+      proyectos.splice(i, 1);
+      cambios.set("__proyectos__", true);
+      pintaProyectos();
+      pintaCandidatas();
+    });
+    caja.appendChild(quitar);
+    fila.appendChild(caja);
+    listaProyectos.appendChild(fila);
+  });
+}
+
+function anadeProyecto(alias, carpeta) {
+  const a = (alias || "").trim();
+  const c = (carpeta || "").trim();
+  if (!a || !c) return;
+  if (proyectos.some(p => p.carpeta.toLowerCase() === c.toLowerCase())) return;
+  // `ritual: null` explicito y no ausente: es "hereda la global", que es
+  // como nace uno nuevo, y el servidor distingue las dos cosas.
+  proyectos.push({alias: a, carpeta: c, existe: true, ritual: null});
+  cambios.set("__proyectos__", true);
+  pintaProyectos();
+  pintaCandidatas();
+}
+
+function pintaCandidatas(lista) {
+  if (lista !== undefined) pintaCandidatas.ultimas = lista;
+  const quedan = (pintaCandidatas.ultimas || []).filter(
+    c => !proyectos.some(p => p.carpeta.toLowerCase() === c.toLowerCase()));
+  document.getElementById("filaCandidatas").hidden = quedan.length === 0;
+  candidatasProyectos.textContent = "";
+  for (const carpeta of quedan) {
+    const b = document.createElement("button");
+    b.className = "suave";
+    const nombre = carpeta.split(/[\\/]/).filter(Boolean).pop() || carpeta;
+    b.textContent = "+ " + nombre;
+    b.title = carpeta;
+    b.addEventListener("click", () => anadeProyecto(nombre, carpeta));
+    candidatasProyectos.appendChild(b);
+  }
+}
+
+async function cargaGlosario() {
+  const caja = document.getElementById("listaGlosario");
+  let d;
+  try { d = await (await pide("/glosario")).json(); }
+  catch (e) { return; }
+  caja.textContent = "";
+  for (const e of (d.entradas || [])) {
+    const fila = document.createElement("div");
+    fila.className = "fila";
+
+    const titulo = document.createElement("label");
+    titulo.className = "titulo";
+    titulo.style.fontFamily = "var(--mono)";
+    titulo.textContent = "\u201c" + e.frase + "\u201d";
+    // >>> APAGADA SE DICE, Y EN AMBAR <<< Una entrada que hoy NO se
+    // intercepta y se enseñara igual que las demas mandaria a alguien a
+    // probar una frase que se va entera al cerebro.
+    if (e.encendida === false) {
+      const marca = document.createElement("span");
+      marca.className = "cuando";
+      marca.style.color = "var(--ambar-alto)";
+      marca.textContent = "  \u2014 apagado ahora mismo";
+      titulo.appendChild(marca);
+    }
+    fila.appendChild(titulo);
+
+    const hace = document.createElement("p");
+    hace.className = "ayuda";
+    hace.textContent = e.hace;
+    fila.appendChild(hace);
+
+    // El canal no es decoracion: "para" escrita no hace nada, y sin esto
+    // te quedas mirando por que.
+    const donde = document.createElement("p");
+    donde.className = "ayuda";
+    donde.style.fontFamily = "var(--mono)";
+    // Tres estados y no dos: sin canal significa "todavia por ninguno"
+    // -- hoy lo lleva el cambio de proyecto con la voz en ingles, que no
+    // tiene patrones. Enseñarlo como las demas seria listar algo que se
+    // va entero al cerebro.
+    donde.textContent = e.canales.length === 0 ? "todavia no, en este idioma"
+      : (e.canales.length > 1 ? "dicha y escrita" : "solo dicha");
+    if (e.canales.length === 0) donde.style.color = "var(--ambar-alto)";
+    fila.appendChild(donde);
+
+    if (e.aviso) fila.appendChild(porque(e.aviso));
+    caja.appendChild(fila);
+  }
+}
+
+async function cargaProyectos() {
+  let d;
+  try { d = await (await pide("/proyectos")).json(); }
+  catch (e) { return; }
+  proyectos = d.proyectos || [];
+  actualProyecto = d.actual || "";
+  ritualGlobal = d.ritual_global || "";
+  ritualManda = !!d.ritual_manda;
+  proyPorVoz.checked = !!d.intercepta;
+  proyRitualManda.checked = ritualManda;
+  pintaPorVoz();
+  pintaRitualManda();
+  pintaProyectos();
+  pintaCandidatas(d.candidatas || []);
+}
+
+async function guardaProyectos() {
+  let r;
+  try {
+    r = await (await pide("/proyectos", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({proyectos: proyectos,
+                            intercepta: proyPorVoz.checked,
+                            ritual_manda: proyRitualManda.checked}),
+    })).json();
+  } catch (e) { return "no se pudieron guardar los proyectos: " + e; }
+  if (!r.ok) return r.motivo || "no se pudieron guardar los proyectos";
+  proyectos = r.proyectos || [];
+  ritualGlobal = r.ritual_global || ritualGlobal;
+  ritualManda = !!r.ritual_manda;
+  proyPorVoz.checked = !!r.intercepta;
+  proyRitualManda.checked = ritualManda;
+  pintaPorVoz();
+  pintaRitualManda();
+  pintaProyectos();
+  pintaCandidatas(r.candidatas || []);
+  return null;
+}
+
+document.getElementById("proyAnadir").addEventListener("click", () => {
+  const a = document.getElementById("proyNuevoAlias");
+  const c = document.getElementById("proyNuevaCarpeta");
+  anadeProyecto(a.value, c.value);
+  a.value = ""; c.value = "";
+});
+
+// --- Servidores MCP (JC-0015) ----------------------------------------
+//
+// LISTA BLANCA: lo que no este declarado no pasa. Lo que la hace usable
+// en vez de un muro es la lista de VISTOS -- los que han pedido algo y
+// se les ha denegado --, porque enterarse pasa a ser un clic en vez de
+// leerse el registro.
+const listaMcp = document.getElementById("listaMcp");
+const vistosMcp = document.getElementById("vistosMcp");
+const encontradosMcp = document.getElementById("encontradosMcp");
+let servidoresMcp = [];
+let politicasMcp = ["auto", "confirmar", "prohibido"];
+let alAnadirMcp = "confirmar";
+
+const QUE_HACE = {
+  auto: "sus herramientas pasan solas",
+  confirmar: "te pregunta cada vez",
+  prohibido: "no pasan",
+};
+
+function pintaMcp() {
+  listaMcp.textContent = "";
+  if (!servidoresMcp.length) {
+    const vacio = document.createElement("p");
+    vacio.className = "ayuda";
+    vacio.textContent = "Ninguno declarado, asi que ningun MCP puede actuar.";
+    listaMcp.appendChild(vacio);
+  }
+  servidoresMcp.forEach((srv, i) => {
+    const fila = document.createElement("div");
+    fila.className = "fila";
+    const titulo = document.createElement("label");
+    titulo.className = "titulo";
+    titulo.textContent = srv.nombre;
+    // QUITAR no cuesta lo mismo en los dos casos: en uno retira un
+    // permiso, y en el que arranca Jarvis se lleva ademas la linea de
+    // ordenes del servidor, que solo esta en config/mcp.yaml.
+    if (srv.lo_lanza_jarvis) {
+      const marca = document.createElement("span");
+      marca.className = "insignia apagado";
+      marca.textContent = "lo arranca Jarvis";
+      titulo.appendChild(document.createTextNode(" "));
+      titulo.appendChild(marca);
+    }
+    fila.appendChild(titulo);
+
+    const caja = document.createElement("div");
+    caja.className = "control";
+    const sel = document.createElement("select");
+    for (const pol of politicasMcp) {
+      const op = document.createElement("option");
+      op.value = pol;
+      op.textContent = QUE_HACE[pol] || pol;
+      if (pol === srv.politica) op.selected = true;
+      sel.appendChild(op);
+    }
+    sel.addEventListener("change", () => {
+      servidoresMcp[i].politica = sel.value;
+      cambios.set("__mcp__", true);
+    });
+    caja.appendChild(sel);
+
+    const quitar = document.createElement("button");
+    quitar.className = "suave";
+    quitar.textContent = "QUITAR";
+    quitar.addEventListener("click", () => {
+      servidoresMcp.splice(i, 1);
+      cambios.set("__mcp__", true);
+      pintaMcp();
+    });
+    caja.appendChild(quitar);
+    fila.appendChild(caja);
+    listaMcp.appendChild(fila);
+  });
+}
+
+function anadeMcp(nombre) {
+  const limpio = (nombre || "").trim();
+  if (!limpio) return;
+  if (servidoresMcp.some(s => s.nombre === limpio)) return;
+  servidoresMcp.push({nombre: limpio, politica: alAnadirMcp, nota: ""});
+  cambios.set("__mcp__", true);
+  pintaMcp();
+  pintaVistos();
+}
+
+function pintaVistos(vistos) {
+  if (vistos !== undefined) pintaVistos.ultimos = vistos;
+  const lista = (pintaVistos.ultimos || [])
+    .filter(v => !servidoresMcp.some(s => s.nombre === v));
+  const fila = document.getElementById("filaVistos");
+  fila.hidden = lista.length === 0;
+  vistosMcp.textContent = "";
+  for (const nombre of lista) {
+    const b = document.createElement("button");
+    b.className = "suave";
+    b.textContent = "+ " + nombre;
+    b.addEventListener("click", () => anadeMcp(nombre));
+    vistosMcp.appendChild(b);
+  }
+}
+
+// >>> LOS QUE YA TIENE TU CLAUDE CODE (2026-09-03) <<<
+// Los VISTOS de arriba solo salen DESPUES de que un servidor intente
+// actuar y se coma una negativa. Estos se leen antes, de donde mira el
+// propio Claude Code. Lo pidio el usuario, y la decision fue DESCUBRIR y
+// NO CONFIAR: aqui no se autoriza nada solo, se pone el boton.
+//
+// SE ENSEÑA EL ARCHIVO DE ORIGEN, y no es decorado: un `.mcp.json` vive
+// DENTRO de la carpeta de un proyecto, o sea que puede haber llegado
+// clonando un repo. Autorizar sin ver de donde sale es autorizar a
+// ciegas, y lo que se autoriza son herramientas con la autoridad entera
+// de tu sesion.
+function pintaEncontrados(lista) {
+  if (lista !== undefined) pintaEncontrados.ultimos = lista;
+  const todos = pintaEncontrados.ultimos || [];
+  const fila = document.getElementById("filaEncontrados");
+  fila.hidden = todos.length === 0;
+  encontradosMcp.textContent = "";
+  for (const e of todos) {
+    const caja = document.createElement("div");
+    caja.className = "encontrado";
+
+    const cabeza = document.createElement("div");
+    cabeza.className = "encontradoNombre";
+    cabeza.textContent = e.nombre;
+    const donde = document.createElement("span");
+    donde.className = "encontradoAlcance";
+    donde.textContent = e.alcance;
+    cabeza.appendChild(donde);
+
+    const orden = document.createElement("div");
+    orden.className = "encontradoOrden";
+    orden.textContent = e.resumen;
+
+    const origen = document.createElement("div");
+    origen.className = "encontradoOrigen";
+    origen.textContent = e.origen;
+
+    caja.append(cabeza, orden, origen);
+
+    // Las variables de entorno NO se copian: este archivo se versiona.
+    // Se dicen por su nombre para que se sepa que hay que poner.
+    if ((e.claves_de_entorno || []).length) {
+      const env = document.createElement("div");
+      env.className = "encontradoAviso";
+      env.textContent = "Necesita, y no se copian: "
+        + e.claves_de_entorno.join(", ");
+      caja.appendChild(env);
+    }
+
+    const b = document.createElement("button");
+    b.className = "suave";
+    // Dos verbos porque son dos cosas distintas: uno entra nuevo y el
+    // otro se queda con UNA definicion de las dos que ya hay.
+    b.textContent = e.ya_declarado ? "IMPORTAR" : "AUTORIZAR";
+    if (e.ya_declarado) {
+      const ojo = document.createElement("div");
+      ojo.className = "encontradoAviso";
+      ojo.textContent = "Ya lo tienes declarado. Importar se queda con "
+        + "esta definicion y NO toca su politica.";
+      caja.appendChild(ojo);
+    }
+    b.addEventListener("click", () => autorizaMcp(e));
+    caja.appendChild(b);
+    encontradosMcp.appendChild(caja);
+  }
+}
+
+async function autorizaMcp(e) {
+  let r;
+  try {
+    r = await (await pide("/mcp/autorizar", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      // Solo CUAL. La definicion la vuelve a leer el servidor del
+      // archivo: lo que se guarda aqui es algo que Jarvis va a
+      // EJECUTAR, y no puede venir de la pagina.
+      body: JSON.stringify({nombre: e.nombre, origen: e.origen}),
+    })).json();
+  } catch (err) { di("no se pudo autorizar: " + err, "mal"); return; }
+  if (!r.ok) { di(r.motivo || "no se pudo autorizar", "mal"); return; }
+  servidoresMcp = r.servidores || [];
+  pintaMcp();
+  pintaVistos(r.vistos || []);
+  pintaEncontrados(r.encontrados || []);
+  di("Autorizado. Hace falta reabrir la sesion para que arranque.",
+     "pendiente");
+}
+
+async function cargaMcp() {
+  let m;
+  try { m = await (await pide("/mcp")).json(); }
+  catch (e) { return; }
+  servidoresMcp = m.servidores || [];
+  politicasMcp = m.politicas || politicasMcp;
+  alAnadirMcp = m.al_anadir || alAnadirMcp;
+  pintaMcp();
+  pintaVistos(m.vistos || []);
+  pintaEncontrados(m.encontrados || []);
+}
+
+async function guardaMcp() {
+  let r;
+  try {
+    r = await (await pide("/mcp", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({servidores: servidoresMcp}),
+    })).json();
+  } catch (e) { return "no se pudo guardar los MCP: " + e; }
+  if (!r.ok) return r.motivo || "no se pudieron guardar los MCP";
+  servidoresMcp = r.servidores || [];
+  pintaMcp();
+  pintaVistos(r.vistos || []);
+  pintaEncontrados(r.encontrados || []);
+  return null;
+}
+
+document.getElementById("mcpAnadir").addEventListener("click", () => {
+  const campo = document.getElementById("mcpNuevo");
+  anadeMcp(campo.value);
+  campo.value = "";
+});
+
+// --- guardar ---------------------------------------------------------
+document.getElementById("recargar").addEventListener("click", () => carga());
+
+document.getElementById("guardar").addEventListener("click", async () => {
+  const boton = document.getElementById("guardar");
+  boton.disabled = true;
+  try {
+    const tocaTelegram = cambios.has("__telegram__");
+    cambios.delete("__telegram__");
+    if (tocaTelegram) await guardaTelegram(false);
+
+    const tocaZonas = cambios.has("__zonas__");
+    cambios.delete("__zonas__");
+    if (tocaZonas) {
+      const fallo = await guardaZonas();
+      if (fallo) { di(fallo, "mal"); return; }
+    }
+
+    const tocaProy = cambios.has("__proyectos__");
+    cambios.delete("__proyectos__");
+    if (tocaProy) {
+      const fallo = await guardaProyectos();
+      if (fallo) { di(fallo, "mal"); return; }
+    }
+
+    const tocaMcp = cambios.has("__mcp__");
+    cambios.delete("__mcp__");
+    if (tocaMcp) {
+      const fallo = await guardaMcp();
+      if (fallo) { di(fallo, "mal"); return; }
+    }
+
+    if (cambios.size === 0) {
+      const algo = tocaTelegram || tocaMcp || tocaProy || tocaZonas;
+      di(algo ? "guardado" : "no has cambiado nada", algo ? "ok" : "");
+      return;
+    }
+    di("guardando...");
+    const carga_ = {};
+    for (const [k, val] of cambios) carga_[k] = val;
+    let r;
+    try {
+      r = await (await pide("/ajustes", {
+        method: "POST", headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({cambios: carga_}),
+      })).json();
+    } catch (e) { di("no se pudo guardar: " + e, "mal"); return; }
+
+    if (!r.ok) {
+      // NO se recarga: se deja lo escrito para poder corregirlo. Recargar
+      // borraria el trabajo y ademas escondia cual era el valor malo.
+      di(r.motivo || "no se pudo guardar", "mal");
+      return;
+    }
+    // >>> LO QUE SE DICE AQUI TIENE QUE SER VERDAD <<<
+    // Un "guardado" a secas sobre algo que todavia no se ha aplicado es la
+    // pantalla mintiendo, y en este proyecto ya paso con el panel de zonas.
+    // Lo que se aplica AL MOMENTO se aplica aqui, antes de decir nada:
+    // si se anunciara "guardado y aplicado" y el color siguiera igual,
+    // la pantalla estaria mintiendo por un cuarto de segundo, que es
+    // justo el rato en el que el usuario mira.
+    if ("ui.tema" in carga_) pintaTema(carga_["ui.tema"]);
+
+    // >>> EL IDIOMA SI PIDE RECARGAR, Y NO ES LO MISMO QUE REINICIAR <<<
+    // La copia se traduce en el SERVIDOR, dentro del archivo que manda
+    // (ver `nucleo/textos.py`): las dos paginas ya cargadas siguen
+    // llevando la version vieja y no hay atributo que mover. Se recarga
+    // la ventana entera -- las dos vistas a la vez -- y ya esta. Sigue
+    // siendo "se aplica al momento": lo que NO hace falta es reiniciar
+    // Jarvis, que es lo caro (se lleva la sesion de Claude Code).
+    if ("ui.idioma" in carga_) {
+      di("Guardado. Recargando la pantalla...", "ok");
+      setTimeout(() => {
+        try { window.parent.location.reload(); }
+        catch (e) { location.reload(); }
+      }, 350);
+      cambios.clear();
+      return;
+    }
+
+    const pend = Object.entries(r.aplica || {}).filter(([, c]) => c !== "ya");
+    if (pend.length === 0) {
+      di("Guardado y aplicado.", "ok");
+    } else {
+      const reinicio = pend.some(([, c]) => c === "reiniciar");
+      di("Guardado. " + (pend.length === 1 ? "Un cambio no se nota"
+                                           : pend.length + " cambios no se notan")
+         + (reinicio ? " hasta que reinicies Jarvis." : " hasta reabrir la sesion."),
+         "pendiente");
+    }
+    cambios.clear();
+  } finally { boton.disabled = false; }
+});
+
+// --- reiniciar --------------------------------------------------------
+// >>> DOS CLICS, Y EL SEGUNDO DICE LO QUE CUESTA <<<
+// No es un `confirm()` del navegador: dentro de pywebview esos dialogos
+// salen sin marco propio y con el texto del sistema, o sea justo la
+// pregunta de aprobacion ilegible que JC-0002 rechazo para la voz. El
+// aviso se escribe aqui, con las palabras del proyecto, y ademas puede
+// decir si HAY UN TURNO EN MARCHA -- que es lo unico que cambia lo que
+// se pierde al pulsar.
+const btnReiniciar = document.getElementById("reiniciar");
+let armado = null;
+
+function desarmar() {
+  clearTimeout(armado);
+  armado = null;
+  btnReiniciar.classList.remove("armado");
+  btnReiniciar.textContent = "REINICIAR JARVIS";
+}
+
+async function comoEsta() {
+  // Si no se puede preguntar, se sigue: el estado sirve para AFINAR el
+  // aviso, no para autorizar nada. Quien decide es el usuario con el
+  // segundo clic, y quien puede o no reiniciar lo dice el servidor.
+  try { return await (await pide("/estado")).json(); }
+  catch (e) { return null; }
+}
+
+btnReiniciar.addEventListener("click", async () => {
+  if (armado) {
+    desarmar();
+    btnReiniciar.disabled = true;
+    di("reiniciando...");
+    let r;
+    try {
+      r = await (await pide("/reiniciar", {method: "POST",
+        headers: {"Content-Type": "application/json"}, body: "{}"})).json();
+    } catch (e) {
+      // La conexion se corta al morir el proceso, y eso NO es un fallo:
+      // es exactamente lo que se pidio. Se dice como lo que es.
+      di("Jarvis se esta cerrando. La ventana volvera sola.", "pendiente");
+      return;
+    }
+    if (!r.ok) {
+      btnReiniciar.disabled = false;
+      di(r.motivo || "no se pudo reiniciar", "mal");
+      return;
+    }
+    di("Reiniciando. La ventana se cierra y vuelve sola.", "pendiente");
+    return;
+  }
+
+  const est = await comoEsta();
+  if (est && est.reiniciable === false) {
+    btnReiniciar.disabled = true;
+    di("Esta sesion no se puede reiniciar sola: se lanzo a mano desde una "
+       + "terminal, no desde la aplicacion.", "mal");
+    return;
+  }
+  const trabajando = !!(est && est.tarea);
+  const sinGuardar = cambios.size > 0;
+  btnReiniciar.classList.add("armado");
+  btnReiniciar.textContent = "CONFIRMAR REINICIO";
+  di((sinGuardar ? "TIENES CAMBIOS SIN GUARDAR. " : "")
+     + (trabajando ? "HAY UN TURNO EN MARCHA y se corta. " : "")
+     + "Reiniciar cierra la sesion de Claude Code y pierde el contexto de "
+     + "la conversacion. Pulsa otra vez para confirmar.",
+     sinGuardar || trabajando ? "mal" : "pendiente");
+  armado = setTimeout(() => { desarmar(); di(""); }, 8000);
+});
+
+carga();
+</script>
+</body>
+</html>

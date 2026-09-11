@@ -1,0 +1,371 @@
+/* ============================================================
+   LA PALETA, Y SOLO LA PALETA.
+   ============================================================
+
+   >>> POR QUE UN ARCHIVO Y NO DOS `:root` <<<
+   Hasta el 2026-08-28 la paleta estaba DUPLICADA: once variables
+   identicas al principio de `consola.html` y otra vez al principio de
+   `ajustes.html`. Mientras el color era uno solo eso solo era feo. Con
+   cuatro temas se vuelve un fallo: cambiar de tema tendria que acertar
+   en dos sitios, y el dia que uno se quede atras el usuario ve la
+   consola en verde y los ajustes en cian y no hay nada roto que
+   arreglar -- simplemente nadie copio el cambio.
+
+   Los ajustes ademas viven en un `iframe`, o sea un DOCUMENTO APARTE:
+   no heredan nada del padre, ni siquiera las variables CSS. Un archivo
+   que enlazan los dos es la unica forma de que compartan paleta de
+   verdad.
+
+   >>> AQUI NO HAY NI UNA REGLA DE MAQUETA, Y AHORA SI HAY DONDE <<<
+   Solo variables, tambien despues del rediseno del 2026-08-29. Lo que
+   cambio ese dia es que la maqueta dejo de estar PROHIBIDA y paso a
+   tener su sitio: `puente/temas/hacker.css`, `despacho.css` y
+   `nexo.css`, que enlazan las dos paginas igual que esta.
+
+   El motivo de separarlo asi, y no de meter la maqueta aqui: esta hoja
+   la lee TODO el mundo, y una regla suelta de `display` aqui dentro
+   afectaria tambien al tema `jarvis`, que es el unico que ya estaba
+   aceptado en pantalla. Cada tema que quiera mover algo lo mueve en SU
+   hoja, y `jarvis` -- que no tiene hoja -- no puede romperse por
+   accidente.
+
+   >>> LO QUE SI SE PROTEGE, Y ES OTRA COSA <<<
+   Antes habia un test que prohibia la palabra `padding` en este
+   archivo. Protegia la maqueta creyendo que protegia el CONTENIDO. Lo
+   que de verdad no puede pasar es que un tema deje de ENSEÑAR algo: la
+   puerta, el crudo, las tres salidas, los paneles de estado. Eso lo
+   sostiene ahora `data-ensena` en las dos paginas y
+   `tests/test_ui_temas.py::test_ningun_tema_esconde_una_pieza_obligatoria`.
+
+   >>> LOS -rgb NO SON UN CAPRICHO <<<
+   Van sueltos (0,229,255) para poder escribir rgba(var(--cian-rgb),
+   .18). La consola usa el mismo tono a doce opacidades distintas -- la
+   rejilla, las scanlines, los bordes, los halos --, y con un token por
+   color-y-opacidad harian falta ochenta variables en vez de doce.
+
+   COMO SE ELIGE: el servidor estampa data-tema en el <html> al servir
+   la pagina (`puente/consola.py`). Sin atributo manda `:root`, que es
+   el tema de siempre.
+*/
+
+/* ============================================================
+   1. JARVIS  -- el de siempre, cian sobre negro azulado.
+   Es el que el usuario dijo que le encanta, asi que estos valores son
+   LOS DE ANTES, copiados uno a uno. Si alguno cambia, cambia la unica
+   pantalla que ya estaba aceptada.
+   ============================================================ */
+:root {
+  /* tonos, sueltos para poder darles opacidad */
+  --cian-rgb:       0,229,255;
+  --cian-alto-rgb:  125,244,255;
+  --brillo-rgb:     140,240,255;   /* las scanlines */
+  --azul-rgb:       0,180,255;     /* fondos de panel y bordes */
+  --halo-rgb:       0,170,255;     /* el resplandor grande del fondo */
+  --violeta-rgb:    120,60,255;    /* la esquina superior derecha */
+  --rosa-rgb:       255,0,110;     /* el desdoble del titular */
+  --ambar-rgb:      255,158,44;    /* LA PUERTA. Ver el aviso de abajo */
+  --ambar-alto-rgb: 255,201,107;
+  --rojo-rgb:       255,59,92;
+  --fondo-rgb:      1,5,12;
+  --ambar-fondo-rgb: 4,2,0;
+  --sombra-rgb:     0,0,0;
+  --panel-rgb:      0,20,32;
+  --barra-rgb:      3,10,18;
+
+  /* colores planos */
+  --cian:      #00E5FF;
+  --cian-alto: #7DF4FF;
+  --cian-max:  #EAFEFF;
+  --texto:     #9FE8FF;
+  --tenue:     #3E7A96;
+  --muy-tenue: #2F6C88;
+  --linea:     rgba(var(--cian-rgb),.18);
+  --ambar:     #FF9E2C;
+  --ambar-alto:#FFC96B;
+  --rojo:      #FF3B5C;
+  --verde:     #7BE8B8;
+
+  --fondo:       #01050C;
+  --fondo-medio: #020A18;
+  --fondo-bajo:  #01060E;
+
+  --rojo-claro:      #FF8FA3;
+  --rojo-claro-alto: #FF9BA8;
+  --meta:            #5FA8C4;
+  --pensar:          #6A4FBF;
+  --pensar-texto:    #8A72D6;
+  --barra-inicio:    #00A8FF;
+  --pie-tecnico:     #164B66;
+  --suelo-roto:      #c0392b;
+
+  /* LA PUERTA (JC-0002). Tiene tokens PROPIOS y no comparte con el
+     resto de la pagina a proposito: es el sitio donde el usuario
+     CONSIENTE, y tiene que verse distinta de todo lo demas en los
+     cuatro temas. Un tema que la pinte como un panel mas la convierte
+     en algo que se acepta por inercia. */
+  --puerta-titulo:      #FFF3E0;
+  --puerta-enunciado:   #F3D9B0;
+  --puerta-opcion:      #FFD9A0;
+  --puerta-tenue:       #D9B686;
+  --puerta-sobre-ambar: #1A0C02;
+
+  /* la rejilla y las scanlines: es lo que hace que ESTE tema sea este */
+  --rejilla: .05;
+  --rejilla-fuerte: .09;
+  --scanlines: .055;
+  --vineta: .85;
+
+  /* >>> TRES PAPELES TIPOGRAFICOS, NO DOS <<<
+     Hasta el 2026-08-29 habia `--titular` y `--mono`, y con eso bastaba
+     porque los cuatro temas usaban UNA familia de texto. Despacho usa
+     dos -- serif en los titulares, sans en el cuerpo -- y sin un tercer
+     token tendria que elegir: o los titulares pierden el serif, o el
+     cuerpo se lee en serif a 16 px durante una pagina entera de
+     ajustes. En los temas de una sola familia, `--cuerpo` es igual a
+     `--titular` y no cambia nada. */
+  --titular: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --cuerpo:  "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* Forma y densidad. Solo las leen las hojas de `puente/temas/`; el
+     tema `jarvis` no tiene hoja, asi que estos valores son los suyos y
+     no los usa nadie. Estan escritos igualmente para que una hoja nueva
+     tenga siempre un valor definido del que partir. */
+  --texto-base: 15px;
+  --paso: 12px;
+  --radio: 0px;
+}
+
+/* ============================================================
+   2. HACKER -- terminal verde sobre negro.
+   El unico tema donde el fondo es negro de verdad y no negro azulado:
+   es lo que separa "consola de ciencia ficcion" de "terminal".
+   ============================================================ */
+:root[data-tema="hacker"] {
+  --cian-rgb:       0,255,120;
+  --cian-alto-rgb:  140,255,190;
+  --brillo-rgb:     120,255,170;
+  --azul-rgb:       0,220,110;
+  --halo-rgb:       0,200,90;
+  --violeta-rgb:    0,140,70;
+  --rosa-rgb:       0,255,140;
+  --ambar-rgb:      255,176,0;
+  --ambar-alto-rgb: 255,214,102;
+  --rojo-rgb:       255,70,70;
+  --fondo-rgb:      0,4,2;
+  --ambar-fondo-rgb: 6,3,0;
+  --sombra-rgb:     0,0,0;
+  --panel-rgb:      0,26,14;
+  --barra-rgb:      0,10,5;
+
+  --cian:      #00FF78;
+  --cian-alto: #8CFFBE;
+  --cian-max:  #E6FFF0;
+  --texto:     #8CFFB4;
+  --tenue:     #2E7A50;
+  --muy-tenue: #1F5C3A;
+  --linea:     rgba(var(--cian-rgb),.20);
+  --ambar:     #FFB000;
+  --ambar-alto:#FFD666;
+  --rojo:      #FF4646;
+  --verde:     #00FF78;
+
+  --fondo:       #000402;
+  --fondo-medio: #01120A;
+  --fondo-bajo:  #000703;
+
+  --rojo-claro:      #FF8A8A;
+  --rojo-claro-alto: #FFA3A3;
+  --meta:            #3F9E68;
+  --pensar:          #1F7A4A;
+  --pensar-texto:    #56C98A;
+  --barra-inicio:    #00C864;
+  --pie-tecnico:     #17512F;
+  --suelo-roto:      #FF4646;
+
+  --puerta-titulo:      #FFE9C2;
+  --puerta-enunciado:   #F0D5A6;
+  --puerta-opcion:      #FFD494;
+  --puerta-tenue:       #C9A97A;
+  --puerta-sobre-ambar: #0A0600;
+
+  /* Mas rejilla y mas scanlines que el resto: aqui el grano ES el tema. */
+  --rejilla: .06;
+  --rejilla-fuerte: .11;
+  --scanlines: .08;
+  --vineta: .9;
+
+  /* >>> VT323 SOLO EN LO GRANDE, Y ES A PROPOSITO <<<
+     VT323 es la letra de un terminal DEC: a 13 px no se lee, y eso no
+     es un defecto que arreglar -- es lo que la hace parecer fosforo.
+     Va en `--titular`, que aqui significa "cifras y titulares de 30 px
+     para arriba". Todo el texto pequeño lo hace IBM Plex Mono, que es
+     monoespaciada igual pero esta dibujada para leerse a 12 px. */
+  --titular: "VT323", "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --cuerpo:  "IBM Plex Mono", "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --mono:    "IBM Plex Mono", "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  /* Denso, y sin una sola esquina redondeada: una terminal no las tiene. */
+  --texto-base: 13px;
+  --paso: 8px;
+  --radio: 0px;
+}
+
+/* ============================================================
+   3. DESPACHO -- claro, cafe suave, para quien no viene de la terminal.
+   Lo pidio el usuario para "secretarias, administradores, financieros
+   que usen Claude Code para leer exceles, formatos, sacar cuentas".
+   ============================================================
+   >>> ESTE TEMA INVIERTE EL FONDO, Y ESO OBLIGA A DOS COSAS <<<
+   Con fondo claro, la rejilla y las scanlines dejan de ser atmosfera y
+   pasan a ser suciedad sobre papel: van a CERO. No es dejadez -- una
+   textura pensada para brillar sobre negro, sobre blanco solo ensucia.
+   Y el texto que va ENCIMA del ambar se vuelve blanco, porque marron
+   sobre marron no se lee. */
+:root[data-tema="despacho"] {
+  --cian-rgb:       141,94,54;
+  --cian-alto-rgb:  110,72,40;
+  --brillo-rgb:     190,160,130;
+  --azul-rgb:       160,120,80;
+  --halo-rgb:       205,175,140;
+  --violeta-rgb:    190,165,140;
+  --rosa-rgb:       160,110,70;
+  --ambar-rgb:      176,106,26;
+  --ambar-alto-rgb: 140,84,20;
+  --rojo-rgb:       178,52,52;
+  --fondo-rgb:      250,245,238;
+  --ambar-fondo-rgb: 252,242,226;
+  --sombra-rgb:     120,95,70;
+  --panel-rgb:      255,252,247;
+  --barra-rgb:      248,242,233;
+
+  --cian:      #8D5E36;
+  --cian-alto: #6E4828;
+  --cian-max:  #4A2F19;
+  --texto:     #43342A;
+  --tenue:     #8A7768;
+  --muy-tenue: #A39284;
+  --linea:     rgba(var(--cian-rgb),.22);
+  --ambar:     #B06A1A;
+  --ambar-alto:#8C5414;
+  --rojo:      #B23434;
+  --verde:     #2E7D52;
+
+  --fondo:       #FAF5EE;
+  --fondo-medio: #F5EDE2;
+  --fondo-bajo:  #FBF7F1;
+
+  --rojo-claro:      #A32B2B;
+  --rojo-claro-alto: #8E2323;
+  --meta:            #8A7768;
+  --pensar:          #7A6A98;
+  --pensar-texto:    #6B5C88;
+  --barra-inicio:    #C08A3E;
+  --pie-tecnico:     #B0A294;
+  --suelo-roto:      #A32B2B;
+
+  --puerta-titulo:      #4A2F19;
+  --puerta-enunciado:   #5A3D22;
+  --puerta-opcion:      #6E4828;
+  --puerta-tenue:       #8A6E50;
+  --puerta-sobre-ambar: #FFFFFF;
+
+  --rejilla: 0;
+  --rejilla-fuerte: 0;
+  --scanlines: 0;
+  --vineta: .06;
+
+  /* >>> SERIF EN LOS TITULARES, Y NO ES DECORACION <<<
+     Esta persona pasa el dia en Word y en el correo: para ella un serif
+     significa DOCUMENTO y un sans apretado significa programa. El tema
+     entero se apoya en eso -- la consola tiene que parecerse mas a un
+     informe que a un panel de control.
+     Y `--mono` sigue siendo monoespaciada, aunque el resto no lo sea:
+     la orden cruda de la puerta es la unica cosa rara de la pagina, y
+     que se vea rara ES el mecanismo. Se ve que ahi habla la maquina. */
+  --titular: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --cuerpo:  "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono:    "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  /* Todo mas grande y mas separado: es el tema de quien no viene de la
+     terminal, y ahi 12 px de rotulo con .2em de letra no se lee, se
+     descifra. */
+  --texto-base: 16px;
+  --paso: 16px;
+  --radio: 5px;
+}
+
+/* ============================================================
+   4. NEXO -- el jarvis moderno: claro, minimalista, contrastes oscuros.
+   Ni rejilla ni resplandores: el contraste lo pone la tipografia y el
+   espacio en blanco, no el brillo.
+   ============================================================ */
+:root[data-tema="nexo"] {
+  --cian-rgb:       20,26,34;
+  --cian-alto-rgb:  10,14,20;
+  --brillo-rgb:     150,160,175;
+  --azul-rgb:       60,80,110;
+  --halo-rgb:       200,210,225;
+  --violeta-rgb:    190,195,210;
+  --rosa-rgb:       90,110,140;
+  --ambar-rgb:      194,120,18;
+  --ambar-alto-rgb: 150,92,12;
+  --rojo-rgb:       190,45,60;
+  --fondo-rgb:      247,248,250;
+  --ambar-fondo-rgb: 253,247,238;
+  --sombra-rgb:     90,100,115;
+  --panel-rgb:      255,255,255;
+  --barra-rgb:      250,251,253;
+
+  --cian:      #141A22;
+  --cian-alto: #0A0E14;
+  --cian-max:  #000000;
+  --texto:     #1C232C;
+  --tenue:     #6B7684;
+  --muy-tenue: #98A2AE;
+  --linea:     rgba(var(--cian-rgb),.14);
+  --ambar:     #C27812;
+  --ambar-alto:#965C0C;
+  --rojo:      #BE2D3C;
+  --verde:     #1F7A4D;
+
+  --fondo:       #F7F8FA;
+  --fondo-medio: #FFFFFF;
+  --fondo-bajo:  #F2F4F7;
+
+  --rojo-claro:      #BE2D3C;
+  --rojo-claro-alto: #9E202D;
+  --meta:            #6B7684;
+  --pensar:          #5B6478;
+  --pensar-texto:    #4A5364;
+  --barra-inicio:    #3C506E;
+  --pie-tecnico:     #AEB6C0;
+  --suelo-roto:      #BE2D3C;
+
+  --puerta-titulo:      #1C232C;
+  --puerta-enunciado:   #2C3540;
+  --puerta-opcion:      #3A4450;
+  --puerta-tenue:       #6B7684;
+  --puerta-sobre-ambar: #FFFFFF;
+
+  --rejilla: 0;
+  --rejilla-fuerte: 0;
+  --scanlines: 0;
+  --vineta: .05;
+
+  /* >>> EL CONTRASTE ES TIPOGRAFICO, ASI QUE LA LETRA ES EL TEMA <<<
+     Space Grotesk tiene un 700 muy apretado y un 300 muy abierto, y esa
+     distancia es todo lo que separa un rotulo de una cifra aqui: no hay
+     brillo, ni sombra, ni degradado que haga ese trabajo. Karla lleva
+     el cuerpo porque a 15-16 px se lee mejor que un grotesco de
+     display. */
+  --titular: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --cuerpo:  "Karla", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  /* Aire, y ni un radio: aqui la caja se dibuja con un filete de 1 px
+     o no se dibuja. */
+  --texto-base: 15px;
+  --paso: 20px;
+  --radio: 0px;
+}

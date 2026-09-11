@@ -1,0 +1,302 @@
+[
+  {
+    "indice": 1,
+    "dicho": "organiza mi carpeta de Descargas por tipo",
+    "texto": "Organiza mi carpeta de descargas por tipo.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0011,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 2,
+    "dicho": "dime que archivos PDF tengo en Documentos",
+    "texto": "Dime que archivos PDF tengo en documentos.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.001,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 3,
+    "dicho": "abre el bloc de notas",
+    "texto": "Abre el bloc de notas.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0195,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 4,
+    "dicho": "crea una carpeta llamada Facturas en Documentos",
+    "texto": "crea una carpeta llamada facturas en documentos.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0024,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 5,
+    "dicho": "elimina el archivo informe.pdf de Descargas",
+    "texto": "Elimina el archivo informe.pdf de descargas.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0005,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 6,
+    "dicho": "mueve el archivo informe.pdf de Descargas a Documentos",
+    "texto": "mueve el archivo informe.pdf de descargas a documentos.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0034,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 7,
+    "dicho": "haz una captura de pantalla",
+    "texto": "Haz una captura de pantalla.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0029,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 8,
+    "dicho": "ejecuta git status en la carpeta del proyecto",
+    "texto": "ejecuta git status en la carpeta del proyecto.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0006,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 9,
+    "dicho": "abre el bloc de notas y escribe informe listo",
+    "texto": "Abre el bloc de notas y escribe informe listo.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0029,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 10,
+    "dicho": "cierra la ventana del navegador",
+    "texto": "Cierra la ventana del navegador.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.001,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 11,
+    "dicho": "que hora es",
+    "texto": "¿Qué hora es?",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0192,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 12,
+    "dicho": "busca los archivos jpg de la carpeta Imagenes",
+    "texto": "Busca los archivos jpg de la carpeta imágenes.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0008,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 13,
+    "dicho": "copia el informe de ventas a la carpeta Documentos",
+    "texto": "Copia el informe de ventas a la carpeta Documentos.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0016,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 14,
+    "dicho": "renombra el archivo captura punto png",
+    "texto": "Renombra el archivo captura.png",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0056,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 15,
+    "dicho": "cuantos archivos hay en Descargas",
+    "texto": "Cuantos archivos hay en descargas.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0007,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 16,
+    "dicho": "abre la calculadora",
+    "texto": "Abre la calculadora.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0005,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 17,
+    "dicho": "ejecuta pip list en la carpeta del proyecto",
+    "texto": "Ejecuta pip list en la carpeta del proyecto.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0006,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 18,
+    "dicho": "mueve los pdf de Descargas a Documentos",
+    "texto": "Mueve los PDFs de descargas a documentos.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0013,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 19,
+    "dicho": "crea una carpeta que se llame Facturas dos mil veintiseis",
+    "texto": "Crean una carpeta que se llame Facturas 2026.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0003,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 20,
+    "dicho": "borra los archivos temporales de Descargas",
+    "texto": "borra los archivos temporales de descargas",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0038,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 21,
+    "dicho": "dime el tamaño de la carpeta Documentos",
+    "texto": "Dime el tamaño de la carpeta, documentos.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0039,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 22,
+    "dicho": "abre el explorador de archivos",
+    "texto": "Abre el explorador de archivos.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0031,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 23,
+    "dicho": "escribe hola mundo en el bloc de notas",
+    "texto": "Escribe hola mundo en el bloc de notas.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0137,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 24,
+    "dicho": "lista las carpetas de mi escritorio",
+    "texto": "lista las carpetas de mi escritorio.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0035,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 25,
+    "dicho": "haz una captura y guardala en Imagenes",
+    "texto": "Haz una captura y guárdala en imágenes.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0008,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 26,
+    "dicho": "cancela",
+    "texto": "Cancela",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0143,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 27,
+    "dicho": "para",
+    "texto": "para.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0306,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 28,
+    "dicho": "repite eso",
+    "texto": "Repite eso.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0112,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 29,
+    "dicho": "no, ese no",
+    "texto": "No, ese no.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0298,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  },
+  {
+    "indice": 30,
+    "dicho": "gracias",
+    "texto": "Gracias.",
+    "sin_habla": false,
+    "prob_sin_habla": 0.0236,
+    "hay_habla_vad": true,
+    "modelo": "small",
+    "con_ancla": true
+  }
+]

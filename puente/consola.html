@@ -1,0 +1,2853 @@
+<!doctype html>
+<html__ATRIBUTOS__>
+<head>
+<meta charset="utf-8">
+<title>Jarvis</title>
+<link rel="stylesheet" href="/tema.css">
+<link rel="stylesheet" href="/fuentes.css">
+<!-- LAS TRES HOJAS DE MAQUETA VAN SIEMPRE, Y ES OBLIGATORIO.
+     El selector de tema se aplica "ya": `pintaTema` solo cambia el
+     atributo `data-tema` del <html>. Si estas hojas se sirvieran
+     solo para el tema activo, elegir otro cambiaria el color al
+     instante y la maqueta NO -- y no daria ningun error, que es el
+     peor fallo posible. Cada regla esta dentro de
+     `:root[data-tema="x"]`, asi que las tres inactivas no pintan
+     nada. `jarvis` no tiene hoja: es la ausencia de las tres. -->
+<link rel="stylesheet" href="/temas/hacker.css">
+<link rel="stylesheet" href="/temas/despacho.css">
+<link rel="stylesheet" href="/temas/nexo.css">
+<style>
+/* =====================================================================
+   LA CABINA. El diseno se decidio en un lienzo aparte y esto es su
+   implementacion.
+
+   >>> LAS FUENTES YA NO ESTAN AQUI <<<
+   Estaban duplicadas entre esta pagina y `ajustes.html`. Desde el
+   2026-08-29 viven en `puente/fuentes.css`, que enlazan las dos: los
+   ajustes son un `iframe`, o sea un documento aparte, y era cuestion de
+   tiempo que una pagina declarase una cara que la otra no. Siguen
+   sirviendose desde nuestro propio servidor y no desde Google, por el
+   regla de cero telemetria; el porque completo esta en ese archivo.
+
+   >>> Y LA MAQUETA DE LOS TEMAS TAMPOCO <<<
+   Lo que hay debajo es la maqueta del tema `jarvis`, que es el que se
+   pinta cuando el <html> no lleva `data-tema`. Los otros tres la
+   redefinen desde `puente/temas/*.css`. Si tocas algo de aqui, mira
+   antes si alguno de los tres lo estaba dando por hecho.
+   ===================================================================== */
+
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; overflow: hidden;
+  font-family: var(--titular);
+  color: var(--texto);
+  background: var(--fondo);
+  display: flex; flex-direction: column;
+}
+
+/* ===================== PESTAÑAS =====================
+   Los ajustes son una PESTAÑA de esta misma ventana, no otra ventana.
+   Se probo abriendo una aparte y el usuario lo corrigio: "queria una
+   pestaña aparte dentro del mismo aplicativo, dentro de la misma ventana
+   de jarvis". Tiene razon y ademas es lo que hace una aplicacion: una
+   ventana, varias vistas.
+
+   >>> LA VISTA DE AJUSTES ES UN `iframe`, Y ES DELIBERADO <<<
+   `puente/ajustes.html` ya existe, esta probada y se sirve sola con su
+   ficha. Fundir sus ~500 lineas dentro de este archivo -- que ya es la
+   pagina mas grande del arbol -- no habria comprado nada y habria hecho
+   las dos mas dificiles de tocar. Mismo origen, misma ventana, misma
+   aplicacion: lo unico que el iframe cambia es que cada vista tiene su
+   propio scroll, que es justo lo que hace falta (una es un panel de
+   control y la otra un documento largo).
+   ==================================================== */
+.pestanas { display: flex; gap: 2px; margin-left: 4px; }
+.pestana { padding: 5px 13px; cursor: pointer; font-family: var(--mono);
+  font-size: 10.5px; letter-spacing: .14em; color: var(--tenue);
+  border: 1px solid transparent; border-bottom: 0; background: transparent;
+  transition: color .12s, background .12s; }
+.pestana:hover { color: var(--cian-alto); }
+.pestana[aria-selected="true"] { color: var(--cian-max);
+  background: rgba(var(--cian-rgb),.10); border-color: rgba(var(--cian-rgb),.30);
+  box-shadow: inset 0 1px 0 rgba(var(--cian-alto-rgb),.35); }
+
+#vistaAjustes { position: relative; z-index: 2; flex-grow: 1; min-height: 0;
+                margin: 12px 16px; border: 1px solid var(--linea);
+                background: rgba(var(--azul-rgb),.03); }
+#vistaAjustes iframe { display: block; width: 100%; height: 100%; border: 0; }
+[hidden] { display: none !important; }
+
+/* --- el fondo, en capas: halos, dos rejillas, lineas de escaneo --- */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(1100px 700px at 50% 20%, rgba(var(--halo-rgb),.20), transparent 64%),
+    radial-gradient(700px 520px at 6% 98%, rgba(var(--cian-rgb),.09), transparent 60%),
+    radial-gradient(700px 520px at 97% 3%, rgba(var(--violeta-rgb),.09), transparent 60%),
+    linear-gradient(180deg,var(--fondo),var(--fondo-medio) 50%,var(--fondo-bajo));
+}
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    linear-gradient(rgba(var(--cian-rgb),var(--rejilla)) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--cian-rgb),var(--rejilla)) 1px, transparent 1px),
+    linear-gradient(rgba(var(--cian-rgb),var(--rejilla-fuerte)) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--cian-rgb),var(--rejilla-fuerte)) 1px, transparent 1px),
+    repeating-linear-gradient(180deg, rgba(var(--brillo-rgb),var(--scanlines)) 0 1px, transparent 1px 3px);
+  background-size: 22px 22px, 22px 22px, 110px 110px, 110px 110px, 100% 3px;
+  box-shadow: inset 0 0 220px rgba(var(--sombra-rgb),var(--vineta));
+}
+/* El barrido: una pasada cada 6 s. Es lo unico que se mueve en el fondo. */
+#barrido {
+  position: fixed; left: 0; right: 0; height: 220px; z-index: 0; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(var(--cian-rgb),.07), transparent);
+  animation: barrido 6s linear infinite;
+}
+@keyframes barrido { 0% { transform: translateY(-120%) } 100% { transform: translateY(120vh) } }
+
+/* --- bisel de cabina --- */
+#bisel { position: fixed; inset: 8px; border: 1px solid rgba(var(--cian-rgb),.13); z-index: 1; pointer-events: none; }
+#bisel i { position: absolute; width: 22px; height: 22px; border-color: var(--cian);
+           filter: drop-shadow(0 0 6px var(--cian)); }
+#bisel i:nth-child(1) { top:-1px; left:-1px;  border-top:2px solid; border-left:2px solid; }
+#bisel i:nth-child(2) { top:-1px; right:-1px; border-top:2px solid; border-right:2px solid; }
+#bisel i:nth-child(3) { bottom:-1px; left:-1px;  border-bottom:2px solid; border-left:2px solid; }
+#bisel i:nth-child(4) { bottom:-1px; right:-1px; border-bottom:2px solid; border-right:2px solid; }
+
+/* --- vidrio: casi transparente, con luz en el borde de arriba --- */
+.vidrio {
+  position: relative;
+  background: rgba(var(--azul-rgb),.035);
+  backdrop-filter: blur(16px) saturate(1.25);
+  border: 1px solid var(--linea);
+  box-shadow: inset 0 1px 0 rgba(var(--cian-alto-rgb),.26), inset 0 0 40px rgba(var(--cian-rgb),.05);
+}
+.vidrio::before, .vidrio::after {
+  content: ''; position: absolute; width: 12px; height: 12px; pointer-events: none;
+  border-color: var(--cian); filter: drop-shadow(0 0 4px rgba(var(--cian-rgb),.9));
+}
+.vidrio::before { top:-1px; left:-1px;  border-top:1px solid; border-left:1px solid; }
+.vidrio::after  { bottom:-1px; right:-1px; border-bottom:1px solid; border-right:1px solid; }
+
+.neon { text-shadow: 0 0 10px rgba(var(--cian-rgb),.7), 0 0 26px rgba(var(--cian-rgb),.32); }
+.mono { font-family: var(--mono); }
+.rotulo { font-family: var(--mono); font-size: 10px; letter-spacing: .32em; color: var(--cian);
+          text-shadow: 0 0 10px rgba(var(--cian-rgb),.8); }
+
+/* ===================== barra superior ===================== */
+header {
+  position: relative; z-index: 2; flex-shrink: 0;
+  margin: 14px 16px 0; height: 50px;
+  display: flex; align-items: center; gap: 18px; padding: 0 18px;
+}
+header .marca { display: flex; align-items: center; gap: 10px; }
+header .marca b { font-size: 15px; font-weight: 700; letter-spacing: .42em; color: var(--cian-max); }
+header .separa { width: 1px; height: 20px;
+                 background: linear-gradient(180deg,transparent,rgba(var(--cian-rgb),.5),transparent); }
+header .meta { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; color: var(--tenue); }
+header .meta b { color: var(--cian-alto); font-weight: 400; }
+/* El ritual de ADR-0029: lo manda Jarvis, no el usuario. Se pinta
+   apagado para que no se confunda con lo que TU dijiste, que es la
+   linea que hay que poder encontrar de un vistazo. */
+.linea.ritual .quien { color: var(--tenue); }
+.linea.ritual .cuerpo { color: var(--tenue); font-style: italic; }
+#salud {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em;
+  padding: 5px 13px; border: 1px solid rgba(var(--cian-rgb),.42);
+  background: rgba(var(--cian-rgb),.09); color: var(--cian-alto);
+  box-shadow: inset 0 0 18px rgba(var(--cian-rgb),.22);
+}
+#salud::before { content:''; width:5px; height:5px; background: currentColor;
+                 box-shadow: 0 0 10px currentColor; animation: titila 1.8s infinite; }
+@keyframes titila { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+#salud.mal  { border-color: rgba(var(--rojo-rgb),.6); background: rgba(var(--rojo-rgb),.10); color: var(--rojo-claro); }
+#salud.duda { border-color: rgba(var(--ambar-rgb),.6); background: rgba(var(--ambar-rgb),.10); color: var(--ambar-alto); }
+/* EN REPOSO: apagado, y el punto NO TITILA. Ese parpadeo es la señal de
+   que hay algo vivo al otro lado -- es lo que separa "en marcha" de
+   "aqui no esta pasando nada" --, asi que dejarlo puesto haria que una
+   sesion sin abrir latiera igual que una trabajando. */
+#salud.quieto { border-color: var(--linea); background: transparent; color: var(--tenue); }
+#salud.quieto::before { animation: none; opacity: .5; box-shadow: none; }
+#suelo { cursor: pointer; }
+#suelo:hover { color: var(--cian-alto); }
+
+/* ===================== NUCLEO: el estado de la voz ===================== */
+#nucleo {
+  position: relative; z-index: 2; flex-shrink: 0; margin: 12px 16px 0;
+  display: grid; grid-template-columns: 250px minmax(0,1fr) 250px;
+  align-items: center; gap: 24px; padding: 20px 20px 18px;
+}
+#nucleo.apagado { opacity: .55; }
+.reticula { position: relative; width: 104px; height: 104px; flex-shrink: 0; }
+.reticula .aro   { position:absolute; inset:0; border-radius:50%; border:1px solid rgba(var(--cian-rgb),.3);
+                   box-shadow: 0 0 18px rgba(var(--cian-rgb),.2), inset 0 0 18px rgba(var(--cian-rgb),.1); }
+.reticula .arco1 { position:absolute; inset:10px; border-radius:50%; border:1px solid transparent;
+                   border-top-color: var(--cian); border-right-color: rgba(var(--cian-rgb),.35);
+                   filter: drop-shadow(0 0 6px var(--cian)); animation: giro 4.5s linear infinite; }
+.reticula .arco2 { position:absolute; inset:19px; border-radius:50%;
+                   border:1px dashed rgba(var(--cian-alto-rgb),.42); animation: giroInv 11s linear infinite; }
+.reticula .arco3 { position:absolute; inset:28px; border-radius:50%; border:1px solid transparent;
+                   border-bottom-color: var(--cian-alto); filter: drop-shadow(0 0 6px var(--cian));
+                   animation: giro 2.6s linear infinite; }
+.reticula .halo  { position:absolute; inset:36px; border-radius:50%;
+                   background: radial-gradient(circle, rgba(var(--cian-alto-rgb),.7), rgba(var(--cian-rgb),.16) 60%, transparent 72%);
+                   animation: pulso 1.7s ease-in-out infinite; }
+.reticula .punto { position:absolute; inset:46px; border-radius:50%; background: var(--cian-max);
+                   box-shadow: 0 0 20px var(--cian-alto), 0 0 48px rgba(var(--cian-rgb),.8); }
+.reticula .cruz  { position:absolute; background: var(--cian); box-shadow: 0 0 6px var(--cian); }
+@keyframes giro    { to { transform: rotate(360deg) } }
+@keyframes giroInv { to { transform: rotate(-360deg) } }
+@keyframes pulso   { 0%,100% { transform: scale(1); opacity:.3 } 50% { transform: scale(1.16); opacity:.9 } }
+
+#estadoVoz { font-size: 46px; font-weight: 600; line-height: .96; letter-spacing: .02em;
+             color: var(--cian-max);
+             text-shadow: -2px 0 rgba(var(--rosa-rgb),.4), 2px 0 rgba(var(--cian-rgb),.5),
+                          0 0 28px rgba(var(--cian-rgb),.8), 0 0 64px rgba(var(--azul-rgb),.45); }
+/* La tarea, justo debajo del estado. Una sola linea SIEMPRE: el ancho
+   del nucleo no puede depender de lo larga que sea una orden, o la
+   cabina entera se estira cada vez que hablas. De ahi `min-width: 0` en
+   la columna (ya estaba) y el recorte con puntos suspensivos aqui.
+   Se ESCONDE cuando no hay nada: una linea que se queda con la ultima
+   tarea para siempre dice que se trabaja cuando no. */
+#tarea { display: block; min-width: 0; max-width: 46ch; overflow: hidden;
+         white-space: nowrap; text-overflow: ellipsis;
+         font-family: var(--mono); font-size: 12px; color: var(--cian-alto);
+         opacity: .92; margin-top: 2px; }
+#tarea[hidden] { display: none; }
+#tarea .quien { color: var(--tenue); font-weight: 400; letter-spacing: .1em;
+                margin-right: 8px; }
+#instruccion { font-size: 17px; letter-spacing: .2em; color: var(--cian-alto);
+               text-shadow: 0 0 10px rgba(var(--cian-rgb),.7); }
+
+/* la onda: mientras se mueve, te oye */
+#onda { display: flex; align-items: center; gap: 3px; height: 58px; }
+#onda i { display: block; width: 2px; border-radius: 1px; transform-origin: center;
+          background: linear-gradient(180deg, var(--cian-max), var(--cian));
+          box-shadow: 0 0 8px rgba(var(--cian-rgb),1), 0 0 20px rgba(var(--cian-rgb),.45);
+          animation: onda 1s ease-in-out infinite; }
+@keyframes onda { 0%,100% { transform: scaleY(.14); opacity:.5 } 50% { transform: scaleY(1); opacity:1 } }
+/* Cuando NO escucha, la onda se congela: no puede parecer que oye. */
+#nucleo.quieto #onda i { animation: none; transform: scaleY(.14); opacity: .28; }
+#nucleo.quieto .reticula .halo,
+#nucleo.quieto .reticula .arco1,
+#nucleo.quieto .reticula .arco3 { animation-play-state: paused; }
+
+.telemetria { display: flex; flex-direction: column; gap: 7px;
+              font-family: var(--mono); font-size: 10px; letter-spacing: .06em; }
+.telemetria div { display: flex; align-items: center; gap: 8px; }
+.telemetria .guion { width: 14px; height: 1px; background: rgba(var(--cian-rgb),.5); flex-shrink: 0; }
+.telemetria .k { width: 74px; color: var(--muy-tenue); flex-shrink: 0; }
+.telemetria .v { color: var(--cian-alto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.telemetria.der { text-align: right; }
+.telemetria.der div { justify-content: flex-end; }
+.telemetria.der .k { text-align: right; width: 84px; }
+.telemetria .aviso { color: var(--ambar-alto); text-shadow: 0 0 10px rgba(var(--ambar-rgb),.6); }
+
+/* La franja del nucleo: reticula, estado y onda. Estuvo INLINE hasta el
+   2026-08-29 y por eso ningun tema podia moverla -- un atributo `style`
+   le gana a cualquier selector. Aqui `jarvis` conserva el centrado que
+   tenia, y los temas que esconden la reticula lo pueden alinear a la
+   izquierda, que es donde queda bien sin ella. */
+.franja { display: flex; align-items: center; justify-content: center; gap: 26px; }
+/* La columna que DICE el estado: el ordinal, la palabra grande, la
+   instruccion y la tarea. Tambien estuvo inline hasta hoy. */
+.dice { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+/* >>> CUANDO NO CABE, LA QUE CEDE ES LA ONDA <<<
+   Reportado por el usuario en `nexo`: "ESCUCHANDO" se montaba encima de
+   la onda. No era falta de margen -- el hueco de 26 px estaba puesto --,
+   era que `.dice` se encogia por debajo de su contenido y la palabra se
+   salia de su caja por la derecha. Un flex encoge a todos por igual y
+   `.dice` traia `min-width: 0`, o sea permiso explicito para quedarse
+   sin sitio.
+   Aqui se decide quien pierde, y la respuesta no es discutible: la
+   palabra dice EN QUE ESTADO esta Jarvis y la onda repite lo mismo en
+   dibujo. Si hay que recortar algo al estrechar la ventana -- y se
+   puede estrechar --, se recorta el dibujo.
+   A 1180 px no cambia nada en ningun tema: solo actua cuando falta
+   sitio, que antes era justo cuando se rompia. */
+.franja .dice { flex-shrink: 0; }
+#onda { flex-shrink: 1; min-width: 0; overflow: hidden; }
+
+/* ===================== cuerpo ===================== */
+#cuerpo { position: relative; z-index: 2; flex-grow: 1; min-height: 0;
+          display: grid; grid-template-columns: minmax(0,1fr) 440px; gap: 12px; margin: 12px 16px; }
+/* 372 -> 440 px el 2026-09-03, y por el visor, que se quedaba estrecho.
+   Lo que se mira ahi son lineas de codigo y rutas, o sea texto que se
+   corta por la derecha; 68 px son ~9 caracteres mas de mono a 12,5. El
+   registro se queda con el resto, que sigue siendo la columna elastica. */
+
+#izquierda { display: flex; flex-direction: column; min-height: 0; }
+#flujo { flex-grow: 1; min-height: 0; overflow-y: auto; padding: 6px 18px 14px;
+         display: flex; flex-direction: column; gap: 12px; }
+#flujo::-webkit-scrollbar { width: 8px; }
+#flujo::-webkit-scrollbar-thumb { background: rgba(var(--cian-rgb),.28); }
+#flujo::-webkit-scrollbar-track { background: transparent; }
+
+.linea { display: flex; flex-direction: column; gap: 3px; }
+.linea .quien { font-family: var(--mono); font-size: 9.5px; letter-spacing: .24em; color: var(--muy-tenue); }
+.linea .cuerpo { font-size: 15px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.linea.usuario .quien { color: var(--ambar); text-shadow: 0 0 10px rgba(var(--ambar-rgb),.55); }
+.linea.usuario .cuerpo { color: var(--cian-max); }
+.linea.auto .quien, .linea.auto .cuerpo { color: var(--muy-tenue); font-size: 12.5px; }
+.linea.auto .cuerpo { font-family: var(--mono); }
+.linea.herramienta .cuerpo,
+.linea.resultado .cuerpo {
+  font-family: var(--mono); font-size: 12px; color: var(--meta);
+  background: rgba(var(--cian-rgb),.055); border: 1px solid rgba(var(--cian-rgb),.2);
+  padding: 9px 12px; overflow-x: auto;
+}
+.linea.pensamiento .quien { color: var(--pensar); }
+.linea.pensamiento .cuerpo { color: var(--pensar-texto); font-style: italic; font-size: 13.5px; }
+.linea.aviso .quien { color: var(--ambar); }
+.linea.aviso .cuerpo { color: var(--ambar-alto); }
+.linea.error .quien { color: var(--rojo); }
+.linea.error .cuerpo { color: var(--rojo-claro); }
+
+#pie { flex-shrink: 0; border-top: 1px solid var(--linea); padding: 11px 18px;
+       display: flex; align-items: center; gap: 12px; background: rgba(var(--cian-rgb),.03); }
+#pie .prompt { font-family: var(--mono); font-size: 13px; color: var(--cian);
+               text-shadow: 0 0 10px rgba(var(--cian-rgb),.8); }
+/* >>> `max-height` Y NO `height`, QUE ES TODO EL ASUNTO <<< La caja
+   crece con lo que escribes (`ajustaCaja`), asi que aqui NO puede haber
+   una altura fija: la habria clavado a un renglon y el JS estaria
+   moviendo un numero que no manda. Lo que si hace falta es un TECHO --
+   `#flujo` es `flex-grow:1` con `min-height:0`, o sea que sin tope una
+   parrafada se comeria el registro entero -- y pasado el techo la caja
+   vuelve a hacer scroll, que es lo correcto: a partir de ahi el
+   problema ya no es ver lo que escribes, es tener donde leer. */
+#texto { flex-grow: 1; resize: none; background: transparent; border: none; outline: none;
+         color: var(--cian-max); font-family: var(--mono); font-size: 12.5px; line-height: 1.5;
+         max-height: 30vh; overflow-y: auto; }
+#texto::placeholder { color: var(--muy-tenue); }
+#mandar { height: 40px; padding: 0 24px; cursor: pointer;
+          border: 1px solid rgba(var(--cian-rgb),.5); background: rgba(var(--cian-rgb),.13);
+          color: var(--cian-max); font-family: 'Chakra Petch', sans-serif;
+          font-size: 12px; font-weight: 600; letter-spacing: .26em;
+          box-shadow: inset 0 0 20px rgba(var(--cian-rgb),.25); }
+#mandar:hover { background: rgba(var(--cian-rgb),.22); }
+
+/* ===================== rail derecho ===================== */
+#rail { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+#rail::-webkit-scrollbar { width: 8px; }
+#rail::-webkit-scrollbar-thumb { background: rgba(var(--cian-rgb),.28); }
+.modulo { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.canal { display: flex; align-items: center; gap: 9px; font-family: var(--mono); font-size: 11.5px; }
+.canal .led { width: 4px; height: 4px; background: var(--cian-alto); box-shadow: 0 0 8px var(--cian); }
+.canal .led.off { background: var(--muy-tenue); box-shadow: none; }
+.canal .nombre { color: var(--texto); }
+.canal .estado { margin-left: auto; color: var(--muy-tenue); }
+/* >>> LOS NOMBRES DE UN MCP NO SON CORTOS, Y SE VIO MIRANDO <<<
+   (2026-09-07.) `.canal` se escribio para CONSOLA / VOZ / TELEGRAM, que
+   caben siempre. Un servidor lo nombra quien escribio el `.mcp.json`, y
+   "claude.ai Google Calendar" partia la fila en dos renglones en TRES
+   temas de cuatro -- con el estado partido ademas en "SIN / ENTRAR".
+   Con todo en verde: el test de temas mira que nadie lo ESCONDA, y esto
+   no lo escondia. Quinta vez.
+   El `min-width:0` NO es decoracion: un item flex no baja de su
+   contenido sin el, asi que sin esa linea el `ellipsis` no llega a
+   dispararse nunca. */
+#listaMcp .nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+#listaMcp .estado { white-space: nowrap; flex-shrink: 0; padding-left: 8px; }
+/* >>> Y EL ROJO VA EN UNA CLASE, NO EN UN `style` INLINE <<<
+   Misma leccion que el `display` inline del 09-03: un inline gana a
+   cualquier regla sin `!important`, o sea que pintar el CAIDO desde el
+   JS dejaria el unico color de alarma de este panel fuera del alcance de
+   los temas -- y en `hacker` la cabecera es una barra verde a sangre,
+   donde este rojo es justo el que hay que poder cambiar. */
+.canal.caido .nombre, .canal.caido .estado { color: var(--suelo-roto); }
+#mcp.mal, #cifraCuota.mal { color: var(--suelo-roto); }
+.cifra { font-size: 34px; font-weight: 600; line-height: 1; color: var(--cian-max);
+         text-shadow: 0 0 20px rgba(var(--cian-rgb),.75), 0 0 46px rgba(var(--azul-rgb),.4); }
+.barra { height: 5px; background: rgba(var(--cian-rgb),.10); position: relative; overflow: hidden; }
+.barra > i { display: block; height: 5px; background: linear-gradient(90deg,var(--barra-inicio),var(--cian-alto));
+             box-shadow: 0 0 14px rgba(var(--cian-rgb),.9); }
+.barra::after { content:''; position:absolute; inset:0;
+                background-image: repeating-linear-gradient(90deg, rgba(var(--fondo-rgb),.9) 0 1px, transparent 1px 6px); }
+/* >>> UNA BARRA LLENA AL 100 Y AL 107 SE DIBUJA IGUAL <<<
+   (2026-09-07.) Aparecio usandolo: la ventana marco 100 %, se espero a que
+   volviera y en el turno siguiente subio a 107 %. El 107 lo manda el servidor
+   y es real -- un turno puede gastar hasta el 21 % de la ventana de una
+   sentada, medido sobre los 295 saltos de `logs/puente/` --, asi que
+   recortar la CIFRA a 100 seria esconder que te pasaste.
+   Lo que no puede quedarse es el dibujo mudo: el ancho ya no puede
+   crecer mas alla del borde, o sea que pasado el 100 la barra deja de
+   contar y la cifra sigue. Es la tercera vez que esta pantalla dice una
+   cosa con el numero y otra con la forma (el 0 % de seis dias y el
+   "QUEDA 3 %" del 09-04), y las tres veces el numero era correcto.
+   Asi que la barra pasada se DIBUJA distinto: llena y en el color de
+   alarma. Llena sigue queriendo decir llena, y ahora ademas se ve
+   cuando se ha rebasado. */
+/* >>> Y SE PINTA REDEFINIENDO EL TOKEN, NO EL `background` <<<
+   Primer intento: `.barra > i.pasada { background: var(--suelo-roto) }`.
+   La clase se ponia -- medido, `marcada: true` -- y la barra seguia
+   verde en `hacker`, cian en `nexo` y ambar en `despacho`: los tres
+   pintan `.barra > i` desde `:root[data-tema=...] body.cabina`, que gana
+   por especificidad Y va despues en la cascada. QUINTA vez que un tema
+   gana en silencio, y la primera que se ve con la clase correcta puesta.
+   Subir la especificidad seria una carrera que el tema siempre gana, y
+   un `!important` dejaria el color de esta alarma fuera del alcance de
+   los temas -- justo lo que se acaba de arreglar en los MCP.
+   Lo que si funciona es cambiar el TOKEN en el propio elemento: una
+   propiedad declarada sobre el elemento gana a la que hereda de
+   `:root`, y da igual QUE regla acabe pintando, porque todas resuelven
+   la variable aqui. Cada tema usa el suyo, asi que se cubren los cuatro,
+   y un tema que quiera otra cosa sigue pudiendo escribir `.pasada`. */
+.barra > i.pasada {
+  --barra-inicio: var(--suelo-roto); --cian-alto: var(--suelo-roto);
+  --cian: var(--suelo-roto); --ambar: var(--suelo-roto);
+}
+.dato span.pasada {
+  --cian-alto: var(--suelo-roto); --cian-max: var(--suelo-roto);
+  color: var(--suelo-roto);
+}
+.dato { display: flex; font-family: var(--mono); font-size: 10px; color: var(--muy-tenue); }
+.dato span:last-child { margin-left: auto; color: var(--cian-alto); }
+
+/* ===================== PUERTAS ===================== */
+/* >>> DOS PUERTAS A LA VEZ SE COMIAN LA UNA A LA OTRA <<<
+   Reportado usandolo el 2026-08-26. `body` es un flex con
+   `overflow:hidden`, y esto no traia `flex-shrink:0` ni `overflow`: con
+   dos puertas pendientes la caja se encogia, el contenido se salia por
+   abajo y se solapaba con el registro. A nivel de sesion las dos
+   seguian abiertas y esperando -- era solo la pantalla --, pero eso es
+   exactamente lo que no puede pasar aqui: la puerta es lo unico que
+   bloquea el sistema entero, y una que no se ve es una que no se
+   contesta. */
+#pendientes { position: relative; z-index: 3; margin: 12px 16px 0;
+              display: flex; flex-direction: column; gap: 10px;
+              flex-shrink: 0; max-height: 46vh; overflow-y: auto; }
+#pendientes:empty { display: none; }
+#pendientes::-webkit-scrollbar { width: 8px; }
+#pendientes::-webkit-scrollbar-thumb { background: rgba(var(--ambar-rgb),.35); }
+#pendientes::-webkit-scrollbar-track { background: transparent; }
+/* Con mas de una, la de abajo se atenua un punto: hay un orden y se ve
+   cual es la primera. */
+.puerta:not(:first-child) { opacity: .82; }
+.puerta {
+  position: relative; padding: 0 0 16px;
+  background: rgba(var(--ambar-rgb),.05); backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(var(--ambar-rgb),.32);
+  box-shadow: inset 0 1px 0 rgba(var(--ambar-alto-rgb),.3), inset 0 0 60px rgba(var(--ambar-rgb),.07);
+  animation: alerta 2.4s ease-in-out infinite;
+}
+@keyframes alerta {
+  0%,100% { box-shadow: 0 0 0 0 rgba(var(--ambar-rgb),0), inset 0 0 60px rgba(var(--ambar-rgb),.07) }
+  50%     { box-shadow: 0 0 38px 1px rgba(var(--ambar-rgb),.26), inset 0 0 60px rgba(var(--ambar-rgb),.13) }
+}
+/* La cinta de peligro. Deriva despacio: no parpadea, porque parpadear
+   es una alarma y esto es una espera. */
+.puerta::before {
+  content: ''; display: block; height: 5px;
+  background-image: repeating-linear-gradient(115deg,
+      rgba(var(--ambar-rgb),.7) 0 12px, rgba(var(--ambar-rgb),.06) 12px 28px);
+  animation: deriva 2.2s linear infinite;
+}
+@keyframes deriva { to { background-position: 56px 0 } }
+.puerta h3 { margin: 16px 20px 10px; font-size: 26px; font-weight: 600; line-height: 1.2;
+             color: var(--puerta-titulo); text-shadow: 0 0 24px rgba(var(--ambar-rgb),.6); }
+.puerta .motivo { margin: 0 20px 10px; font-family: var(--mono); font-size: 11px;
+                  letter-spacing: .3em; color: var(--ambar);
+                  text-shadow: 0 0 10px rgba(var(--ambar-rgb),.7); }
+.puerta .enunciado { margin: 0 20px 10px; font-size: 17px; color: var(--puerta-enunciado); }
+/* >>> EL CRUDO SE VE SIEMPRE. Nunca plegado: si esto y el titulo no
+   coinciden, se aprueba una cosa y se ejecuta otra. <<< */
+.puerta .crudo {
+  margin: 0 20px 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+  color: var(--puerta-opcion); background: rgba(var(--ambar-fondo-rgb),.8); border: 1px solid rgba(var(--ambar-rgb),.3);
+  padding: 12px 14px; white-space: pre-wrap; word-break: break-word;
+  max-height: 220px; overflow: auto;
+}
+.puerta .botones { margin: 0 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+.puerta button { height: 46px; padding: 0 30px; cursor: pointer;
+                 font-family: 'Chakra Petch', sans-serif; font-size: 13.5px;
+                 font-weight: 600; letter-spacing: .22em; }
+.puerta button.si { border: 1px solid var(--ambar-alto); background: rgba(var(--ambar-rgb),.9);
+                    color: var(--puerta-sobre-ambar); box-shadow: 0 0 28px rgba(var(--ambar-rgb),.55); }
+.puerta button.no { border: 1px solid rgba(var(--ambar-rgb),.45); background: rgba(var(--ambar-rgb),.05);
+                    color: var(--puerta-tenue); }
+.puerta button:hover { filter: brightness(1.12); }
+/* La tercera salida NO se dibuja mas pequeña que las otras dos. Se
+   dibuja distinta: discontinuo dice "esto no decide nada todavia". Si
+   algun dia alguien la hace un enlace pequeño de abajo, habra vuelto a
+   dejar "no lo se" sin sitio donde caber. */
+.puerta button.espera { border-style: dashed; }
+.puerta button:disabled { opacity: .5; cursor: default; filter: none; }
+/* Lo que pasa con cada boton. En este tema va debajo y discreto: la
+   pantalla ya es densa y el texto del boton se lee bien solo. */
+.puerta .consecuencia { display: block; margin-top: 3px; font-family: var(--mono);
+                        font-size: 10px; font-weight: 400; letter-spacing: .06em;
+                        opacity: .78; text-transform: none; }
+/* Aplazada: la peticion SIGUE VIVA y sigue entera en pantalla. Lo unico
+   que se apaga es la alarma -- deja de latir y la cinta deja de correr.
+   No se encoge ni se cierra: una puerta que no se ve es una que no se
+   contesta. */
+.puerta.aplazada { animation: none; }
+.puerta.aplazada::before { animation: none; opacity: .45; }
+
+/* El detalle tecnico del registro. Aqui nace ABIERTO (lo pone
+   `pinta()`), asi que el resumen sobra y se esconde: sin el, esto se ve
+   exactamente igual que antes del 2026-08-29. En `despacho` nace
+   cerrado y ese mismo resumen es el clic que lo abre. */
+.linea .detalle { min-width: 0; }
+.linea .detalle > summary { display: none; }
+/* Con resumen, el summary ES el renglon: dice sobre que y cuanto, y el
+   JSON crudo queda detras del triangulo. Sin esta regla el resumen se
+   escribiria y no se veria, porque el de arriba los esconde todos. */
+.linea .detalle.conResumen > summary { display: list-item; cursor: pointer;
+  font-family: var(--mono); font-size: 12px; color: var(--texto);
+  list-style-position: outside; margin-left: 12px; }
+.linea .detalle.conResumen[open] > summary { color: var(--tenue); }
+
+.meta { font-family: var(--mono); font-size: 10.5px; color: var(--tenue); }
+
+/* --- TE DEJO v3: UNA TIRA QUE AVANZA (2026-09-02) ---------------- */
+/* Van tres versiones, y las dos primeras las tumbo el usuario mirandolas:
+     v1  lista de NOMBRES en el rail de 240 px -> "feo, muerto, raro".
+     v2  lo ultimo en grande, con fichas debajo -> "no se siente vivo
+         todavia, no se siente como si fuese en vivo como transmision".
+   EL DIAGNOSTICO con el que se eligio esta: el panel NO PARTICIPABA DEL
+   TURNO. Solo cambiaba cuando aterrizaba un archivo, o sea casi nunca, y
+   estaba pegado al registro, que si se mueve: se veia muerto POR
+   CONTRASTE. Una transmision tiene señal aunque no pase nada -- de ahi
+   el cabezal, que late aunque no haya caido todavia ninguna pieza. */
+/* >>> EL RECUADRO SE AJUSTA AL TRABAJO, Y CRECE CON EL <<<
+   Se vio probandolo con UNA sola pieza: la ficha salia pegada al borde
+   derecho y dejaba a la izquierda un recuadro enorme y vacio. Lo que
+   tenia que hacer era empezar en el centro y crecer con el trabajo que
+   va entrando. El fallo era de aqui: la caja ocupaba el
+   ancho entero desde el primer momento, asi que con una pieza el 80 %
+   de ella era vacio -- y un vacio grande al lado de algo pequeño hace
+   que lo pequeño parezca un resto, no el trabajo.
+   Ahora la caja mide LO QUE MIDE SU CONTENIDO (`fit-content`) y va
+   centrada, asi que crece a los dos lados segun entran piezas hasta
+   llenar la columna; a partir de ahi, la tira empieza a correr.
+   El `min-width` no es de gusto: por debajo de eso el cabezal no cabe y
+   la frase de lo que hace se queda en tres letras con puntos suspensivos
+   -- o sea que la caja encogeria justo lo que hay que leer. */
+#vivo { flex-shrink:0; display:flex; flex-direction:column;
+  margin:0 auto 10px; width:fit-content;
+  min-width:min(100%, 640px); max-width:calc(100% - 36px);
+  border:1px solid rgba(var(--cian-rgb),.20);
+  background:rgba(var(--panel-rgb),.35); }
+
+/* EL CABEZAL. La linea que hace de señal: late, dice que se hace ahora
+   mismo y lleva el reloj del turno. Cuelga de los EVENTOS y no del
+   sondeo de `/estado` -- ver el JS. */
+.cabezal { display:flex; align-items:center; gap:9px; padding:7px 11px;
+  border-bottom:1px solid rgba(var(--cian-rgb),.14); min-width:0; }
+.latido { width:7px; height:7px; flex-shrink:0; border-radius:50%;
+  background:var(--tenue); }
+/* El punto solo late cuando hay turno. Un punto que parpadea siempre
+   miente igual que un cabezal congelado, y ademas cansa la vista de
+   quien tiene esto abierto todo el dia. */
+.cabezal.directo .latido { background:var(--rojo); animation:latir 1.5s ease-in-out infinite; }
+/* El mismo punto, en el visor del POV. Late mientras el bloque sigue
+   abierto: cuando para, es que eso ya esta entero. */
+.latido.late { background:var(--rojo); animation:latir 1.5s ease-in-out infinite; }
+@keyframes latir {
+  0%,100% { opacity:1;   box-shadow:0 0 0 0 rgba(var(--rojo-rgb),.5); }
+  70%     { opacity:.45; box-shadow:0 0 0 7px rgba(var(--rojo-rgb),0); }
+}
+.cabezal .rotulo { flex-shrink:0; }
+.cabezal.directo .rotulo { color:var(--rojo); }
+/* Lo que hace AHORA. Una sola linea y recortada: la tarea puede ser una
+   frase entera y esto no es el registro. */
+#vivoQue { flex:1 1 auto; min-width:0; max-width:52ch; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; font-family:var(--mono);
+  font-size:11px; color:var(--texto); }
+/* >>> Y AL LADO, LO QUE DE VERDAD ESTA CORRIENDO AHORA MISMO <<<
+   Se noto usandolo: lo que el cabezal dice que hace y lo que esta haciendo
+   difieren a menudo. No era una sospecha: MEDIDO contra las 38
+   sesiones de `logs/puente/`, **236 de 343 herramientas (69 %) corren
+   dentro de una racha de tres o mas con la MISMA frase**, y la racha mas
+   larga es de 16. La frase de al lado solo se mueve cuando Claude NARRA
+   y detras viene una herramienta; si encadena diez sin contar nada, se
+   queda en la primera. Es la regla de `SeguidorDeTarea` y es correcta --
+   esa frase es lo que Claude DIJO.
+   Asi que no se toca esa y se pone la otra al lado: la herramienta que
+   corre en este instante. Son dos cosas distintas y las dos son ciertas.
+   `flex-shrink:0` porque es la que cambia: si hay que recortar algo, se
+   recorta la frase, que lleva medio minuto diciendo lo mismo. */
+#vivoHerramienta { flex-shrink:0; max-width:30ch; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; font-family:var(--mono);
+  font-size:10.5px; color:var(--tenue); }
+#vivoHerramienta:empty { display:none; }
+/* El reloj. Ancho FIJO y tabular: si baila al pasar de 9 a 10 segundos,
+   arrastra el boton de al lado y la linea entera parece temblar. */
+#vivoReloj { flex-shrink:0; font-family:var(--mono); font-size:11px;
+  color:var(--tenue); font-variant-numeric:tabular-nums; min-width:44px;
+  text-align:right; }
+
+/* LA TIRA. Lo nuevo entra por la DERECHA y empuja lo anterior; lo ultimo
+   va grande al final y lo viejo queda pequeño a la izquierda. La
+   secuencia importa tanto como el ultimo estado: con Blender se ve el
+   objeto cambiar de un vistazo, sin pinchar nada. */
+#tira { display:flex; align-items:flex-end; gap:7px; overflow-x:auto;
+  overflow-y:hidden; padding:10px 11px; scroll-behavior:smooth; }
+/* >>> LO NUEVO SE PEGA AL BORDE DERECHO, Y ESO NO ES ADORNO <<<
+   Con pocas piezas y alineacion normal, la tira las amontona a la
+   izquierda y deja medio panel vacio a la derecha -- o sea justo donde
+   el usuario acaba de leer que entra lo nuevo. Se vio en la primera
+   captura de la v3. Se empuja con un `margin-left:auto` en el primer
+   hijo y NO con `justify-content:flex-end`, que en un contenedor con
+   scroll deja lo mas viejo fuera de alcance por la izquierda. Cuando la
+   tira se llena, estos margenes se quedan en cero solos.
+   Van en `::before`/`::after` y no en los hijos de verdad porque el
+   primero es la marca de "+N antes", que nace `hidden`: un elemento
+   oculto esta fuera del flujo y su margen no empuja nada. Se probo, y la
+   tira siguio pegada a la izquierda en la captura.
+   Los DOS autos reparten el hueco entre los dos lados, o sea CENTRAN.
+   Con uno solo, las piezas se pegaban al borde derecho y era lo que el
+   usuario vio mal. Y cuando la tira desborda, los autos valen cero y se
+   recupera el scroll entero, que es lo que un `justify-content:flex-end`
+   habria roto dejando lo mas viejo fuera de alcance. */
+#tira::before, #tira::after { content:""; margin-left:auto; }
+.pieza { flex:0 0 auto; width:88px; padding:0; text-align:left;
+  display:flex; flex-direction:column; cursor:pointer;
+  color:inherit; font:inherit; background:transparent;
+  border:1px solid rgba(var(--cian-rgb),.16); }
+.pieza:hover { border-color:var(--cian); }
+.pieza .lienzo { height:56px; overflow:hidden; position:relative;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(var(--fondo-rgb),.45); }
+.pieza .lienzo img { width:100%; height:100%; object-fit:cover; display:block; }
+/* >>> UNA MINIATURA DE UN DOCUMENTO NO ES UNA IMAGEN <<< Punto 2 de los
+   cuatro que dejo escritos la v2. Si un `.md` se pinta como un
+   rectangulo, la tira se llena de rectangulos iguales y vuelve a ser una
+   lista de nombres con otra forma. Se pintan sus primeras lineas, en
+   pequeño, y se leen como se lee un documento de lejos: se reconoce. */
+.pieza .lienzo pre { margin:0; padding:5px 6px; width:100%; height:100%;
+  overflow:hidden; font-family:var(--mono); font-size:6px; line-height:1.5;
+  white-space:pre-wrap; word-break:break-word; color:var(--tenue);
+  pointer-events:none; }
+.pieza .sello { font-family:var(--mono); font-size:12px; letter-spacing:.06em;
+  color:var(--tenue); }
+.pieza .comosellama { padding:4px 6px; font-family:var(--mono); font-size:9.5px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  border-top:1px solid rgba(var(--cian-rgb),.10); }
+.pieza.ausente .comosellama { text-decoration:line-through; color:var(--tenue); }
+/* >>> UNA TARJETA ES UN <button>, Y LOS TRES TEMAS LES PONEN ALTURA <<<
+   `hacker` hace `button { height:28px }`, `nexo` 42 y `despacho` 46, con
+   su padding. Para un boton de verdad esta bien; a una tarjeta la deja
+   en un filete -- MEDIDO en la primera captura de la v3: la tarjeta a
+   28 px con la miniatura dentro a 15, o sea la tira entera aplastada en
+   los tres temas a la vez. Y no lo caza ningun test: el de temas
+   comprueba que ninguna hoja la ESCONDA, y esto no la esconde, la
+   aplasta. Van CINCO fallos de esta familia (los cuatro del 29 y este),
+   y los cinco se han visto mirando una captura.
+   La altura de una tarjeta la manda su contenido. Se dice con el id
+   delante para ganarle a la regla generica del tema sin quitarle al tema
+   la tarjeta: `:root[data-tema=x] .pieza` sigue pudiendo mas. */
+#tira .pieza { height:auto; padding:0; }
+
+/* La ultima, en grande y al final. Es donde se mira. */
+.pieza.ultima { width:236px; border-color:rgba(var(--cian-rgb),.42); }
+.pieza.ultima .lienzo { height:148px; }
+.pieza.ultima .lienzo img { object-fit:contain; }
+.pieza.ultima .lienzo pre { font-size:9px; line-height:1.6; color:var(--texto); }
+.pieza.ultima .comosellama { font-size:11px; color:var(--cian); }
+.pieza.ultima .sello { font-size:20px; }
+/* La entrada: la pieza nueva llega desde la derecha. Solo la NUEVA, y
+   solo una vez -- ver `ultimaPintada` en el JS. Un panel que se
+   reanimara entero en cada repintado seria mareo, no vida. */
+.pieza.entrando { animation:entrar .45s cubic-bezier(.2,.8,.3,1); }
+@keyframes entrar {
+  from { transform:translateX(26px); opacity:0; }
+  to   { transform:none; opacity:1; }
+}
+
+/* >>> LA TIRA PUEDE PERDER FOTOGRAMAS, Y HAY QUE DECIRLO <<<
+   Punto 3 de los cuatro. `Producido` suelta los bytes de las imagenes
+   mas viejas al llegar a 24 MB. En una LISTA eso no se notaba; en una
+   SECUENCIA, un salto callado dice que ese trabajo no ocurrio. La lapida
+   se queda en su sitio, con su nombre, y dice por que esta vacia. */
+.pieza.hueco { border-style:dashed; cursor:default; }
+.pieza.hueco:hover { border-color:rgba(var(--cian-rgb),.16); }
+.pieza.hueco .lienzo { background:transparent; }
+.pieza.hueco .sello { font-size:9px; letter-spacing:.04em; text-align:center;
+  padding:0 6px; line-height:1.4; }
+/* Y las que se cayeron enteras por el otro tope, que se van por el
+   extremo viejo: ahi una lapida por cada una llenaria la tira de losas,
+   asi que se cuentan. */
+#tiraOlvidadas { flex:0 0 auto; align-self:center; padding:0 8px;
+  font-family:var(--mono); font-size:9.5px; color:var(--tenue);
+  letter-spacing:.06em; }
+
+/* El interruptor. Oculto, deja un boton pequeño para recuperarlo: un
+   panel que se esconde y no deja como volver es un panel que se
+   pierde. */
+#vivoMuestra { align-self:flex-start; margin:0 18px 10px; }
+button.suave { height:26px; padding:0 12px; cursor:pointer;
+  font-family:var(--mono); font-size:10px; letter-spacing:.12em;
+  color:var(--tenue); background:transparent;
+  border:1px solid rgba(var(--cian-rgb),.22); }
+button.suave:hover { color:var(--cian); border-color:var(--cian); }
+
+/* --- PLEGAR UN MODULO DEL RAIL (2026-09-03) ----------------------- */
+/* >>> SE ESCONDE EL CUERPO, NUNCA EL ROTULO <<< Un panel plegado del
+   todo no se puede volver a abrir, y ademas `rail.perimetro` y
+   `rail.carga` son piezas OBLIGATORIAS del test de temas.
+   El selector va por EXCLUSION (`:not(.cabeza)`) y no envolviendo el
+   cuerpo en un div nuevo, y eso es a proposito: `.modulo` es un flex
+   column cuyo `gap` lo redefinen los tres temas (4 px en `hacker`, 10 en
+   `despacho`, 6 en `nexo`). Un contenedor intermedio se habria comido
+   ese gap y habria hecho falta repetirlo tema por tema. */
+/* >>> Y ESTAS DOS CLASES NACEN DE QUE EL PLEGADO NO FUNCIONABA <<<
+   Eran `style="display:flex..."` INLINE, y un estilo inline le gana a
+   cualquier regla sin `!important`: los botones decian MOSTRAR, la clase
+   `plegado` estaba puesta, y el cuerpo seguia entero en pantalla. Se vio
+   en la captura, y la firma era exacta -- en PERIMETRO desaparecio la
+   fila `.dato`, que no llevaba inline, y se quedo la de la cifra, que si.
+   **CUARTA VEZ QUE UN INLINE MUERDE EN ESTA PAGINA**: la tercera fue el
+   centrado de la franja, que ningun tema podia tocar. La regla que sale
+   de las cuatro: aqui un `display` inline es una regla que no puede
+   sobreescribir nadie, ni un tema ni un estado. */
+.pila { display: flex; flex-direction: column; gap: 6px; }
+.zonas { display: flex; align-items: baseline; gap: 10px; }
+.cabeza { display: flex; align-items: center; gap: 10px; }
+.cabeza .crece { flex-grow: 1; }
+.modulo.plegado > *:not(.cabeza) { display: none; }
+button.suave.pliega { height: 20px; padding: 0 9px; font-size: 9px;
+  letter-spacing: .18em; flex-shrink: 0; }
+
+/* --- EL POV: un visor de lo que hace AHORA (2026-09-02) ----------- */
+/* >>> EMPEZO FLOTANDO SOBRE EL REGISTRO, Y SE MOVIO AL RAIL <<<
+   El visor se veia bien, pero no en ese sitio: tenia que irse a la
+   derecha, debajo de la carga. La razon se ve en cuanto esta puesto: el
+   registro es una columna que YA se mueve sola, asi que un visor
+   flotando encima competia con ella y ademas tapaba renglones. El rail
+   es lo contrario -- son modulos quietos --, o sea que lo unico que se
+   mueve ahi es esto, que es exactamente lo que se quiere mirar.
+   Lo que NO cambia es el marco fijo: el ojo no puede seguir algo que se
+   mueve si ademas cambia de sitio. */
+/* >>> SE QUEDA PEGADO AL FONDO DEL RAIL, Y NO ES UN ADORNO <<<
+   Medido en `despacho`: el rail entero mide 707 px de contenido en 636
+   de hueco, o sea que desborda 71 -- y lo que se sale es justo esto, por
+   ser lo ultimo. `overflow-y:auto` lo hacia alcanzable con scroll, pero
+   **un visor al que hay que hacer scroll no es un visor**: lo que se
+   viene a mirar es lo que esta pasando AHORA, y si hay que buscarlo ya
+   ha pasado. Con `sticky` se queda a la vista y lo que se desplaza es lo
+   de arriba, que son numeros quietos.
+   Fondo casi opaco por lo mismo: por debajo pasa la CARGA al hacer
+   scroll, y un texto que crece sobre otro texto no se lee. */
+#pov { z-index:3;
+  /* >>> SIN `sticky`, PORQUE YA NO ES LO ULTIMO DEL RAIL (2026-09-03) <<<
+     El `sticky` existia por una razon medida -- el rail desbordaba 71 px
+     en `despacho` y lo que se salia era esto, por ir el ultimo --, y esa
+     razon desaparece al subirlo por encima de la CARGA: ahora lo que se
+     desplaza si el hueco se queda corto son los numeros quietos. */
+  /* Sin `min-height` a ojo: el alto minimo lo ponen sus tres piezas
+     (la barra, el cuerpo con su minimo y el pie), y la barra mide 28 px
+     en `jarvis` y 60 en `despacho`. Un numero fijo aqui acertaba en un
+     tema y recortaba el PIE en el otro -- medido: el pie acababa 8 px
+     por debajo del borde, y `overflow:hidden` se lo comia en silencio. */
+  /* >>> NI CRECE NI ENCOGE, Y ESO SE DECIDIO MIDIENDO <<<
+     Con `1 1 auto` se aplastaba a 80 px y el pie se salia -- la causa es
+     una regla poco intuitiva: un item flexible con `overflow` distinto
+     de `visible` tiene tamaño minimo CERO, asi que el `overflow` que
+     protege el cuerpo era lo que dejaba machacar la caja. Y con
+     `1 0 auto` se iba a 414 px y empujaba la CARGA fuera del rail.
+     Un tamaño fijo es lo unico que se comporta igual en los cuatro
+     temas, y el `sticky` de arriba es lo que hace que fijo no signifique
+     "se sale por abajo". */
+  /* >>> AHORA SE LLEVA EL HUECO SOBRANTE, Y ANTES NO <<<
+     Era `0 0 auto` y el hueco se lo llevaba la CARGA, asi que el visor
+     quedaba tan pequeno que casi no se veia -- y es el panel que hace
+     falta para ver que esta trabajando. Un panel de numeros
+     quietos no necesita crecer; el unico que si es este.
+     EL `min-height` NO ES DECORACION Y AQUI ES OBLIGATORIO: un item
+     flexible con `overflow` distinto de `visible` tiene tamano minimo
+     CERO, o sea que sin el volveria el aplastamiento a 80 px que ya se
+     midio una vez. Con el, en un rail apretado encoge hasta 240 y no
+     mas. */
+  flex:1 1 auto; min-height:240px; display:flex; flex-direction:column;
+  padding:0; overflow:hidden;
+  background:rgba(var(--panel-rgb),.97);
+  border:1px solid rgba(var(--cian-rgb),.34); }
+.povBarra { display:flex; align-items:center; gap:8px; padding:6px 9px;
+  border-bottom:1px solid rgba(var(--cian-rgb),.16); min-width:0; }
+#pov .rotulo { flex-shrink:0; }
+#povSobre { overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  min-width:0; }
+/* El cuerpo: alto FIJO. Un visor que crece y encoge con lo que cae
+   dentro no es un visor, es un acordeon -- y lo que se esta mirando se
+   movería de sitio en mitad de la frase. */
+/* >>> LA ALTURA LA MANDA EL HUECO, NUNCA EL CONTENIDO <<<
+   Las dos mitades importan. Que NO la mande el contenido es lo que
+   impide que el visor crezca y encoja con cada linea que Claude escribe,
+   empujando la CARGA y el PERIMETRO de arriba: un rail que baila es
+   ilegible. Y que la mande el HUECO -- `flex` en vez de un numero fijo --
+   lo destaparon las capturas: con 172 px el pie se salia por debajo, y
+   con 140 seguia saliendose en `despacho`, donde los modulos son mas
+   altos. El pie es donde pone "NO SE HIZO", o sea lo unico de este visor
+   que no se puede perder por el borde.
+   `min-height` para que en un rail apretado encoja en vez de irse: un
+   visor al que hay que hacer scroll no es un visor. */
+/* El `padding-bottom` de 3 px no es simetria: el cuerpo se lleva al
+   final en cada trozo (`scrollTop = scrollHeight`), y sin ese margen la
+   linea que se esta escribiendo -- la unica que importa -- quedaba
+   cortada por la mitad cuando el alto de la caja no era multiplo del
+   interlineado. Se vio en `despacho`, que es el tema de letra grande. */
+/* La altura la manda el HUECO (`flex`) y no el contenido, que es lo que
+   impide que el visor crezca y encoja con cada linea que Claude escribe.
+   El `min-height` es lo mismo que en `#pov`: sin el, el `overflow` de
+   aqui deja que el flex lo machaque hasta cero.
+   Y la letra sube de 10,5 a 12,5: "ni siquiera se ve" era literal. */
+.povCuerpo { flex:1 1 auto; min-height:150px; overflow-y:auto;
+  padding:9px 12px 4px;
+  font-family:var(--mono); font-size:12.5px; line-height:1.6;
+  white-space:pre-wrap; word-break:break-word; color:var(--texto); }
+/* >>> EL CURSOR: es TODO el efecto de "se esta escribiendo" <<<
+   Sin el, un texto que crece se lee como un texto que ya estaba. Solo
+   parpadea mientras el bloque sigue abierto. */
+/* >>> Y SE PUEDE SUBIR A MIRAR LO DE ANTES (2026-09-03) <<<
+   Hacia falta una barra de scroll para poder mirar arriba y abajo lo
+   que ha pasado en el visor. Era `overflow:hidden`,
+   o sea que lo que salia por arriba se perdia: el visor solo enseñaba el
+   final. Con `auto` aparece la barra cuando hace falta y no antes.
+   LO QUE ESTO OBLIGA A CAMBIAR ESTA EN EL JS, y es la parte delicada:
+   el visor se pega solo al final en cada trozo (`scrollTop =
+   scrollHeight`), y con scroll eso significa que **subir a mirar algo te
+   devolveria abajo al siguiente trozo**, que llegan cada decimas. Ver
+   `povPegado`. */
+.povCuerpo::-webkit-scrollbar { width: 8px; }
+.povCuerpo::-webkit-scrollbar-thumb { background: rgba(var(--cian-rgb),.28); }
+.povCuerpo::-webkit-scrollbar-track { background: transparent; }
+/* El aviso de que NO se esta viendo el final. Sin el, un visor que ya no
+   sigue al texto se lee igual que uno colgado -- que es el sintoma que
+   este panel existe para no tener. */
+.povPie .atras { margin-left: 10px; color: var(--ambar); }
+.povCuerpo::after { content:"_"; color:var(--cian); }
+#pov.quieto .povCuerpo::after { content:""; }
+#pov.aterrizo .povCuerpo::after { content:""; }
+.povCuerpo em { font-style:normal; color:var(--tenue); }
+.povPie { padding:5px 9px; border-top:1px solid rgba(var(--cian-rgb),.12);
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.06em;
+  color:var(--tenue); min-height:20px; }
+/* Lo que se vio escribir y NO llego a pasar. Es el unico estado del
+   visor que grita, y tiene que gritar: la pantalla enseño un documento
+   entero que no existe. */
+#pov.negado { border-color:var(--rojo); }
+#pov.negado .povPie { color:var(--rojo); }
+#povMuestra { flex-shrink:0; align-self:flex-start; }
+
+#visor { position:fixed; inset:0; z-index:60; display:flex;
+  align-items:center; justify-content:center; padding:34px;
+  background:rgba(var(--sombra-rgb),.62); }
+/* >>> ESTO NO LLEVA `vidrio`, Y NO ES UN DESCUIDO (2026-09-04) <<<
+   Se vio mirandolo: al abrir un documento desde la tira, en `hacker` el
+   fondo verde se transparentaba y el texto casi no se podia leer.
+   La causa exacta: `hacker` aplana
+   `.vidrio` a `background: transparent; backdrop-filter: none`, que es
+   su identidad -- ahi los paneles son filetes, no cajas --, y esta caja
+   heredaba eso siendo lo unico de la pagina que NO es un panel. Se vio
+   en `logs/capturas/visor_hacker.png`: el texto del documento cayendo
+   encima del registro, de la tira y del rail a la vez.
+   Un panel comparte sitio con lo que tiene al lado; un MODAL tapa lo que
+   tiene detras, y taparlo es todo su trabajo. Por eso se pinta aqui y
+   con su propio fondo en vez de tomar prestado el de los paneles: la
+   regla de `.vidrio` es "casi transparente", y esa regla es correcta
+   para lo que gobierna. `--panel-rgb` esta definido en los cuatro temas,
+   asi que esto sigue cambiando de color con el tema -- lo que ya no
+   puede es dejar de ser opaco.
+   CUARTA VEZ que un tema rompe algo que la suite da por bueno: la caja
+   de texto, la tira aplastada, el `display` inline y esto. */
+.visorCaja { display:flex; flex-direction:column; gap:10px; padding:16px 18px;
+  width:min(1100px,100%); max-height:100%;
+  background:rgba(var(--panel-rgb),.985);
+  border:1px solid var(--linea);
+  box-shadow:0 24px 70px rgba(var(--sombra-rgb),.55); }
+.visorBarra { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+/* El visor a pantalla completa se queda: es donde se LEE un documento
+   largo. El de arriba ensena; este deja leer. */
+.visorBarra button.suave { height:30px; padding:0 14px; font-size:10.5px; }
+.visorCuerpo { overflow:auto; flex-grow:1; min-height:0; }
+.visorCuerpo img { max-width:100%; height:auto; display:block; }
+.visorCuerpo pre { margin:0; white-space:pre-wrap; word-break:break-word;
+  font-family:var(--mono); font-size:12.5px; line-height:1.65; }
+</style>
+</head>
+<!-- La clase distingue esta pagina de `ajustes.html` desde el CSS. Las
+     dos se sirven con el mismo `data-tema`, y hay reglas que solo
+     valen para una: la barra lateral de `nexo` mete 88 px de hueco a
+     la izquierda, y en los ajustes -- que van dentro de un iframe y no
+     tienen barra -- eso seria un margen suelto sin nada dentro. -->
+<body class="cabina">
+
+<div id="barrido"></div>
+<div id="bisel"><i></i><i></i><i></i><i></i></div>
+
+<header class="vidrio">
+  <span class="marca">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cian)" stroke-width="1.1"
+         style="filter:drop-shadow(0 0 6px var(--cian))">
+      <path d="M12 1.6l9 5.2v10.4l-9 5.2-9-5.2V6.8z"/><circle cx="12" cy="12" r="3.4"/>
+      <circle cx="12" cy="12" r="6.6" stroke-dasharray="2 4"/>
+    </svg>
+    <b class="neon">JARVIS</b>
+  </span>
+  <span class="separa"></span>
+  <span class="meta" data-ensena="cabecera.nodo">NODE&middot;<b id="donde"></b></span>
+  <span class="meta" data-ensena="cabecera.cuota">CUOTA&middot;<b id="cifraCuota"></b></span>
+  <span class="meta" data-ensena="cabecera.coste">COSTE&middot;<b id="coste"></b></span>
+  <span class="meta" id="suelo" data-ensena="cabecera.suelo" title="ver las zonas"></span>
+  <!-- JC-0017. Se pinta SIEMPRE, igual que el suelo: un aviso que solo
+       aparece cuando algo va mal se confunde con que no hay aviso. -->
+  <span class="meta" id="puerta" data-ensena="cabecera.puerta"></span>
+  <!-- >>> MCP: SOLO APARECE SI HAY ALGO QUE DECIR (2026-09-07) <<<
+       Va oculto cuando no hay ni un servidor, que es el caso de casi
+       todo el mundo: un rotulo permanente diciendo "0" seria ruido en la
+       unica linea que no se pliega. En cuanto hay uno se dice SIEMPRE,
+       este bien o mal -- misma regla que el SUELO y que la PUERTA --,
+       porque "arranco" y "no arranco" tienen que verse distintos y no
+       solo cuando falla. -->
+  <span class="meta" id="mcp" data-ensena="cabecera.mcp" title="servidores MCP" hidden></span>
+  <span class="pestanas" role="tablist" data-ensena="cabecera.pestanas">
+    <button class="pestana" id="pestanaConsola" role="tab" aria-selected="true">CONSOLA</button>
+    <button class="pestana" id="pestanaAjustes" role="tab" aria-selected="false">AJUSTES</button>
+  </span>
+  <span id="salud" data-ensena="cabecera.salud">conectando</span>
+</header>
+
+<!-- ================= EL NUCLEO =================
+     Ocupa la franja que en un chat tendria la conversacion, y es
+     deliberado: la pregunta que uno se hace cada diez segundos delante
+     de un asistente de voz es "¿me oye ahora mismo?". -->
+<div id="nucleo" class="vidrio quieto">
+  <div class="telemetria" data-ensena="nucleo.telemetria">
+    <div><span class="guion"></span><span class="k">MIC</span><span class="v" id="tMic">—</span></div>
+    <div><span class="guion"></span><span class="k">PALABRA</span><span class="v" id="tPalabra">—</span></div>
+    <div><span class="guion"></span><span class="k">SALIDA</span><span class="v" id="tSalida">—</span></div>
+    <div><span class="guion"></span><span class="k">MODO</span><span class="v" id="tModo">—</span></div>
+  </div>
+
+  <div class="franja">
+    <div class="reticula">
+      <div class="aro"></div><div class="arco1"></div><div class="arco2"></div><div class="arco3"></div>
+      <div class="halo"></div><div class="punto"></div>
+      <i class="cruz" style="left:50%; top:-6px; width:1px; height:12px;"></i>
+      <i class="cruz" style="left:50%; bottom:-6px; width:1px; height:12px;"></i>
+      <i class="cruz" style="top:50%; left:-6px; height:1px; width:12px;"></i>
+      <i class="cruz" style="top:50%; right:-6px; height:1px; width:12px;"></i>
+    </div>
+    <div class="dice">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="rotulo" id="ordinal">ESTADO —/06</span>
+        <span style="width:48px; height:1px; background:linear-gradient(90deg,var(--cian),transparent);"></span>
+      </div>
+      <span id="estadoVoz" data-ensena="nucleo.estado">SIN VOZ</span>
+      <span id="instruccion" data-ensena="nucleo.instruccion">arranca con --voz</span>
+      <!-- >>> VA AQUI, Y LO ELIGIO EL USUARIO (2026-08-27) <<<
+           La primera version la metio en la cabecera, entre el suelo y
+           las pestañas, y no se veia NUNCA: era lo unico elastico de esa
+           fila, asi que competia por el ancho con NODE, CUOTA, COSTE,
+           SUELO, las pestañas y el estado, y se quedaba en cero pixeles.
+           No estaba rota, estaba aplastada.
+           El usuario la mando aqui: "metela donde esta jarvis que sale
+           'escuchando', deberia ser una frase de 'trabajando'". Y tiene
+           razon: esta es la franja que contesta "¿que esta pasando?",
+           que es la misma pregunta. -->
+      <span id="tarea" hidden><b class="quien" id="tareaQuien"></b><span id="tareaQue"></span><b class="quien" id="tareaEsc" hidden> · ESC PARA PARAR</b></span>
+    </div>
+    <div id="onda" data-ensena="nucleo.onda"></div>
+  </div>
+
+  <div class="telemetria der" data-ensena="nucleo.cuentas">
+    <div><span class="k">TURNOS</span><span class="v" id="tTurnos">0</span><span class="guion"></span></div>
+    <div><span class="k">PARADAS</span><span class="v" id="tParadas">0</span><span class="guion"></span></div>
+    <div><span class="k">PERMISOS</span><span class="v" id="tPermisos">0</span><span class="guion"></span></div>
+    <div><span class="k">SIN CONTESTAR</span><span class="v aviso" id="tSinContestar">0</span><span class="guion"></span></div>
+  </div>
+</div>
+
+<div id="pendientes" data-ensena="puerta.zona"></div>
+
+<!-- El visor. Aparte del rail a proposito: en el rail cabe la LISTA, y
+     un documento o una captura necesitan la pantalla entera para servir
+     de algo. Se abre pinchando una pieza y se cierra con Escape. -->
+<div id="visor" data-ensena="visor" hidden>
+  <div class="visorCaja">
+    <div class="visorBarra">
+      <span class="rotulo" id="visorNombre"></span>
+      <span style="flex-grow:1"></span>
+      <button class="suave" id="visorAbrir">ABRIR FUERA</button>
+      <button class="suave" id="visorCerrar">CERRAR</button>
+    </div>
+    <div class="visorCuerpo" id="visorCuerpo"></div>
+    <div class="meta" id="visorPie"></div>
+  </div>
+</div>
+
+<!-- La otra vista. El iframe se carga la PRIMERA vez que se entra:
+     montar una pagina entera que quiza nadie abra es tiempo de arranque
+     regalado, y este proceso esta pensado para vivir en el inicio de
+     Windows. -->
+<div id="vistaAjustes" hidden></div>
+
+<div id="cuerpo">
+  <div id="izquierda" class="vidrio">
+    <div style="display:flex; align-items:center; gap:12px; padding:12px 18px 6px; flex-shrink:0;">
+      <span class="rotulo">REGISTRO DE TRANSMISION</span>
+      <span style="flex-grow:1; height:1px; background:linear-gradient(90deg,rgba(var(--cian-rgb),.42),transparent);"></span>
+    </div>
+    <!-- >>> LA TIRA QUE AVANZA, Y SU CABEZAL <<<
+         Tercera version, y las dos primeras las tumbo el usuario
+         mirandolas: una lista de nombres ("feo, muerto, raro") y lo
+         ultimo en grande ("no se siente vivo, como si fuese en vivo como
+         transmision"). El diagnostico con el que se eligio esta: el
+         panel no PARTICIPABA del turno -- solo cambiaba cuando aterrizaba
+         un archivo, o sea casi nunca, y encima del registro, que si se
+         mueve. Aqui la señal no depende de que caiga nada: el cabezal
+         late mientras se trabaja, con lo que se hace y el reloj del
+         turno, y la tira cuenta la SECUENCIA de lo que fue quedando. -->
+    <div id="vivo" data-ensena="producido.vivo" hidden>
+      <div class="cabezal" id="vivoCabezal">
+        <i class="latido" id="vivoLatido"></i>
+        <span class="rotulo" id="vivoDirecto">TE DEJO</span>
+        <span id="vivoQue"></span>
+        <span id="vivoHerramienta"></span>
+        <span id="vivoReloj"></span>
+        <button class="suave" id="vivoOculta">OCULTAR</button>
+      </div>
+      <div id="tira"><span id="tiraOlvidadas" hidden></span></div>
+    </div>
+    <button class="suave" id="vivoMuestra" hidden>VER LO QUE TE DEJO</button>
+    <div id="flujo" data-ensena="registro"></div>
+    <div id="pie" data-ensena="pie.entrada">
+      <span class="prompt">&gt;_</span>
+      <textarea id="texto" rows="1"
+                placeholder="introduce una orden, o dila en voz alta"></textarea>
+      <button id="mandar">EJECUTAR</button>
+    </div>
+  </div>
+
+  <div id="rail">
+    <div class="modulo vidrio" data-ensena="rail.canales">
+      <span class="rotulo">CANALES</span>
+      <div class="canal"><i class="led" id="ledConsola"></i><span class="nombre">CONSOLA</span><span class="estado">EN USO</span></div>
+      <div class="canal"><i class="led off" id="ledVoz"></i><span class="nombre">VOZ</span><span class="estado" id="estadoCanalVoz">APAGADA</span></div>
+      <div class="canal"><i class="led off" id="ledTelegram"></i><span class="nombre">TELEGRAM</span><span class="estado" id="estadoCanalTelegram">SIN PONER</span></div>
+    </div>
+
+    <!-- ================= LOS SERVIDORES MCP =================
+         >>> ESTO EXISTE PORQUE UN FALLO DURO TRES SESIONES MUDO <<<
+         El 2026-09-04 `blender` estuvo `failed` tres sesiones seguidas y
+         la pantalla no lo dijo ni una vez: `system/init` traia el estado
+         y `protocolo.Inicio` lo tiraba. El unico sintoma era que la
+         herramienta no aparecia, y eso se ve IGUAL que si el modelo
+         hubiera decidido no usarla -- dos fallos distintos con el mismo
+         sintoma, que es la forma que este proyecto lleva persiguiendo
+         desde la cuota.
+         REUSA `.canal` a proposito: un servidor que esta o no esta es la
+         misma pregunta que un canal encendido o apagado, y ya hay un
+         lenguaje visual para eso. Se llena desde `/estado`.
+         NO SE PLIEGA y no lleva boton: es una linea por servidor y solo
+         aparece si hay alguno, asi que no es el panel que le quita sitio
+         al visor -- que es lo que motivo los pliegues del 09-03. -->
+    <div class="modulo vidrio" id="modMcp" hidden>
+      <span class="rotulo" data-ensena="rail.mcp">SERVIDORES MCP</span>
+      <div id="listaMcp"></div>
+    </div>
+
+    <!-- >>> PERIMETRO Y CARGA SE PUEDEN PLEGAR (2026-09-03) <<<
+         Se pliegan para que el visor de "ejecutandose" pueda crecer
+         hacia arriba o hacia abajo, segun cual de los dos se oculte.
+         El "arriba o abajo" sale solo y por eso no hay codigo para ello:
+         el rail es una columna, el visor es el unico item que crece
+         (`flex:1 1 auto`), y PERIMETRO va encima y CARGA debajo. Plegar
+         el de arriba le da sitio hacia arriba y el de abajo hacia abajo.
+         >>> Y PLEGARLOS NO ESCONDE NINGUN DATO DE SEGURIDAD <<<
+         Que es la pregunta que habia que hacerse antes de dejar esconder
+         nada en esta pantalla. El estado del SUELO y la CUOTA estan
+         ademas en la cabecera, que no se pliega: se pliega el detalle,
+         nunca el aviso. Y el ROTULO se queda siempre a la vista con su
+         boton -- un panel plegado que no se ve no se puede recuperar, y
+         ademas `rail.perimetro` es una pieza OBLIGATORIA del test de
+         temas. -->
+    <div class="modulo vidrio" id="modPerimetro">
+      <div class="cabeza">
+        <span class="rotulo" data-ensena="rail.perimetro">PERIMETRO</span>
+        <span class="crece"></span>
+        <button class="suave pliega" data-pliega="modPerimetro">OCULTAR</button>
+      </div>
+      <div class="zonas">
+        <span class="cifra" id="cuantasZonas">—</span>
+        <span class="meta" style="letter-spacing:.16em">ZONAS SELLADAS</span>
+      </div>
+      <div class="dato"><span>ESTADO</span><span id="estadoSuelo">—</span></div>
+    </div>
+
+  <!-- ================= EL POV =================
+       >>> QUE PIDE ESTE PANEL (2026-09-02) <<<
+       Ver el POV de Claude: lo que hace AHORA, en primera persona y
+       en vivo, como una pelicula en un visor en miniatura -- no el
+       resumen de lo que ya hizo.
+
+       ES UN VISOR APARTE Y NO PARTE DE LA TIRA, y no es capricho: la tira
+       cuenta el PASADO (una secuencia de lo que quedo, y una pieza solo
+       entra ahi con su resultado sin error) y esto es el PRESENTE (un solo
+       plano). Y sobre todo: aqui se ve lo que TODAVIA PUEDE NO PASAR --
+       el contenido de un `Write` viaja ANTES de la puerta, asi que un
+       documento denegado se habra visto escribirse entero. Meterlo en la
+       tira romperia su regla ("un Write denegado NO es una pieza") sin
+       tocar una linea de ella. Cuando se deniega, este visor LO DICE. -->
+  <!-- >>> Y EL 2026-09-03 SUBE POR ENCIMA DE LA CARGA, Y CRECE <<<
+       Se movio otra vez, y esta vez por tamano y no por sitio: quedaba
+       hasta abajo y tan pequeno que ni se veia. Sube por encima de la
+       cuota y se hace mas grande y mas ancho, porque es el panel que
+       hace falta para ver que esta trabajando.
+       Y es coherente con lo que ya decia el comentario de abajo: el
+       `sticky` existia porque esto era LO ULTIMO del rail y se salia por
+       el borde. Poniendolo por encima de la CARGA el problema deja de
+       existir en su origen -- lo que se desplaza si el rail se queda
+       corto son los numeros quietos, que es exactamente lo que se
+       queria. El `sticky` se retira por eso, no por gusto.
+       QUIEN SE LLEVA EL HUECO SOBRANTE TAMBIEN CAMBIA: lo tenia la
+       CARGA (`flex-grow:1`) para empujar su pie tecnico al fondo. Ahora
+       lo coge el visor, que es lo unico del rail que se mueve. -->
+  <div id="pov" class="vidrio" data-ensena="pov" hidden>
+    <div class="povBarra">
+      <i class="latido" id="povLatido"></i>
+      <span class="rotulo" id="povQue">POV</span>
+      <span class="meta" id="povSobre"></span>
+      <span style="flex-grow:1"></span>
+      <button class="suave" id="povCierra">OCULTAR</button>
+    </div>
+    <div class="povCuerpo" id="povCuerpo"></div>
+    <div class="povPie"><span id="povNota"></span><span class="atras" id="povAtras" hidden>MIRANDO ATRAS</span></div>
+  </div>
+  <button class="suave" id="povMuestra" hidden>VER LO QUE HACE</button>
+
+    <!-- ================= LA CARGA =================
+         >>> DOS RELOJES, Y ANTES SE ENSENABA UNO SOLO <<<
+         Se reporto usandolo (2026-09-03): la cuota que se pintaba no era
+         real -- se ensenaba la semanal y ademas salia casi siempre a 0,
+         que es mentira. Hacen falta las dos: la de la SESION, o sea
+         cuanto le queda a la ventana actual, y la
+         semanal, que tan llena esta, de los numeros reales"*.
+         Eran dos fallos y solo uno se veia. El del cero: el campo del que
+         leiamos desaparecio de los eventos y `or 0.0` lo convirtio en un
+         numero creible (ver `Limite` en `protocolo.py`, 61 % de 195
+         eventos reales). El del reloj: la pantalla ensenaba el que
+         trajera el ultimo evento, asi que ponia "sesion" o "semanal"
+         segun el momento y sin que nadie lo hubiera elegido.
+         AHORA SE PIDEN LAS DOS COSAS EN LA DIRECCION EN QUE SE PREGUNTAN:
+         de la sesion, lo que QUEDA -- "cuanto le falta para acabarse" --,
+         y de la semana lo LLENA que esta. Y CADA BARRA DIBUJA SU PROPIA
+         CIFRA: la de la sesion se vacia segun se gasta y la de la semana
+         se llena. Pintar lo gastado en las dos dejaba una barra al 30 %
+         debajo de un "QUEDA 70 %", que se lee como un fallo aunque los
+         dos numeros sean correctos.
+
+         >>> Y ESO ERA LA MITAD DEL ARREGLO. LA OTRA MITAD SE VIO
+             USANDOLO, Y LAS DOS SE MIDEN EN LA MISMA PANTALLA <<<
+         (2026-09-04.) Se agoto una sesion mirando un panel que decia la
+         verdad: la barra de "sesion queda" marcaba 3 % y se veia casi
+         vacia, cuando lo que pasaba es que estaba al 97 % y se acabo.
+         La cifra era correcta y la barra dibujaba su propia cifra, que
+         es exactamente lo que se decidio arriba. Lo que fallaba es lo
+         que una barra SIGNIFICA: una barra casi vacia se lee como
+         "queda sitio" en todas partes, y aqui era el ultimo aviso antes
+         de quedarse sin cuota. El rotulo -- tres palabras pequenas --
+         no le gana a la forma.
+         ASI QUE LAS DOS DICEN LO MISMO: **CUANTO SE LLEVA GASTADO**, y
+         las dos barras se llenan: lo que hay que poder leer de un vistazo
+         es cuanto se lleva GASTADO, no cuanto queda -- "llevo el 98 % de
+         la sesion" es la frase que sirve. Se pierde lo de
+         "en la direccion en que se pregunta"; se gana que una barra
+         llena signifique lo mismo en las dos y que llenarse sea siempre
+         la mala noticia. `Ventana.queda` se fue con esto: nadie lo
+         leia ya, y un calculo que no pinta nadie es la forma de fallo
+         que este arbol lleva persiguiendo tres semanas.
+
+         Y UNA VENTANA QUE NO VINO ESCRIBE "?", NUNCA "0 %". LO MISMO
+         UNA QUE YA SE REINICIO: ver `pctCuota`. -->
+    <div class="modulo vidrio" data-ensena="rail.carga" id="modCarga">
+      <div class="cabeza">
+        <span class="rotulo">CARGA</span>
+        <span class="crece"></span>
+        <button class="suave pliega" data-pliega="modCarga">OCULTAR</button>
+      </div>
+      <div class="pila">
+        <div class="dato"><span>SESION GASTADA</span><span id="cuotaSesion">?</span></div>
+        <div class="barra"><i id="barraSesion" style="width:0%"></i></div>
+        <div class="meta" id="vuelveSesion"></div>
+      </div>
+      <div class="pila">
+        <div class="dato"><span>SEMANA GASTADA</span><span id="cuotaSemana">?</span></div>
+        <div class="barra"><i id="barraSemana" style="width:0%"></i></div>
+        <div class="meta" id="vuelveSemana"></div>
+      </div>
+      <div class="pila">
+        <div class="dato"><span>VENTANAS UTILES</span><span id="ventanasUtiles">—</span></div>
+        <div class="barra"><i id="barraVentanas" style="width:0%"></i></div>
+      </div>
+      <div class="meta" style="line-height:1.9; letter-spacing:.12em; color:var(--pie-tecnico)" id="pieTecnico"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// La ficha la incrusta el servidor al servir esta pagina. Una pagina
+// ajena no puede leerla -- CORS le tapa la respuesta --, y por eso sirve:
+// sin ella, cualquier pestana abierta podia hacer POST /turno y conducir
+// a Claude Code con tu autoridad entera (medido el 2026-08-24).
+const FICHA = "__FICHA__";
+
+// TODA peticion pasa por aqui. Un fetch suelto que se olvide la ficha
+// fallaria con 403 y se veria en el acto, que es como tiene que ser: la
+// alternativa es que alguien la quite "porque estorba" y no se note.
+function pide(ruta, opciones) {
+  const o = Object.assign({}, opciones || {});
+  o.headers = Object.assign({}, o.headers || {}, {"X-Jarvis-Ficha": FICHA});
+  return fetch(ruta, o);
+}
+
+const flujo = document.getElementById("flujo");
+const zonaPendientes = document.getElementById("pendientes");
+let costeTotal = 0;
+
+// TODO lo que viene de la sesion se pinta con textContent. Nunca
+// innerHTML: es contenido observado, puede venir de la web o de un
+// archivo, y no se interpreta jamas.
+let sesionActual = null;
+
+// >>> LA UNICA EXCEPCION DE DENSIDAD, Y ESTA ACOTADA A ESTAS DOS <<<
+// Las lineas de HERRAMIENTA y de RESULTADO son las unicas del registro
+// que no son una frase: son la orden que se ejecuto y lo que devolvio.
+// En `despacho` -- el tema de quien no ha abierto una terminal en su
+// vida -- llegan PLEGADAS; en los otros tres llegan abiertas, que es
+// como estaban antes de hoy.
+//
+// Se pliega, no se esconde: un `<details>` cerrado se abre con un clic
+// y el texto sigue en el DOM. Eso es lo que se acordo -- "puedes plegar
+// o agrupar detalle tecnico, pero no eliminarlo" -- y es la razon de
+// que esto sea un `<details>` de verdad y no un `display:none` con
+// buena intencion.
+//
+// Y el tema se lee AQUI, en JavaScript, en vez de resolverlo con CSS.
+// La alternativa era un `display: contents` sobre el `<details>` para
+// que los otros tres temas lo desplegaran: funciona en Chromium, no
+// esta garantizado, y su fallo seria mudo -- detalle tecnico invisible
+// en un tema donde deberia verse. Una linea de JS que dice lo que hace
+// es mejor que un truco de CSS que hay que saberse.
+// >>> LOS VALORES SON TEXTO Y LAS CLAVES SON DATO <<<
+// Las claves las manda el servidor (`puente.suelo.EstadoSuelo`) y no se
+// tocan; los valores son lo que se lee, asi que `nucleo/textos.py` los
+// traduce. Escribirlos con las mismas palabras que las claves habria
+// hecho que traducir el texto cambiara tambien la comparacion de
+// `s.suelo.estado === "listo"`, que es como se decide el color de
+// alarma -- y eso no da error, deja el color puesto al reves.
+const ESTADO_DEL_SUELO = {
+  listo: "en pie",
+  sin_verificar: "sin verificar",
+  inseguro: "inseguro",
+  sin_suelo: "sin suelo",
+};
+
+// >>> Y LA TABLA LA LEEN LOS TRES SITIOS, NO UNO <<<
+// (2026-09-09, visto en la captura y no en un test.) Esto vivia como un
+// `const` DENTRO del pintor de la cabecera, asi que el rail y el pie
+// tecnico se pegaban `suelo.estado` en crudo: con la pantalla en ingles
+// la cabecera decia "NO FLOOR" y el modulo PERIMETER, tres dedos mas
+// abajo, "SIN_SUELO". El mismo dato, dos idiomas, en la misma foto.
+// Un estado que no conozcamos se sigue leyendo crudo: si el
+// servidor gana uno nuevo se ve, en vez de desaparecer.
+const diceSuelo = (e) => ESTADO_DEL_SUELO[e] || e;
+
+const CLASES_TECNICAS = ["herramienta", "resultado"];
+
+// >>> `resumen` CONTESTA A UNA PREGUNTA RAZONABLE <<<
+// Si el registro de transmision y ese visor no son lo mismo. Se
+// midio (`-m eval.mirar_el_solape`, 47 sesiones reales): **56 % de
+// solape**, pero el 39 % del registro -- 212 puertas entre otras cosas --
+// no cabe en un visor de un solo plano, asi que no sobra ninguno de los
+// dos. Lo que SI sobraba era la FORMA: de los 187 KB de letra de
+// herramienta que pintaba el registro, **71 KB eran JSON crudo** -- el
+// `file_path` entero y el `content` con los saltos escapados, recortado a
+// 400 caracteres. Eso no se lee, no cabe, y es exactamente lo que el
+// visor enseña mejor: un documento como documento.
+// Con `resumen` el renglon dice lo factual y corto, y **el JSON no se
+// pierde: queda a un clic**. Es un cambio de forma, no un borrado.
+function pinta(clase, quien, cuerpo, resumen) {
+  const pegado = flujo.scrollHeight - flujo.scrollTop - flujo.clientHeight < 60;
+  const div = document.createElement("div");
+  div.className = "linea " + clase;
+  const q = document.createElement("div");
+  q.className = "quien";
+  q.textContent = quien;
+  const c = document.createElement("div");
+  c.className = "cuerpo";
+  c.textContent = cuerpo;
+
+  if (CLASES_TECNICAS.includes(clase)) {
+    const det = document.createElement("details");
+    det.className = "detalle" + (resumen ? " conResumen" : "");
+    // Con resumen nace CERRADO: para eso esta el resumen. Sin el, abierto
+    // en todos menos en despacho -- un tema desconocido lo abre, que es
+    // la salida segura: ensena de mas, nunca de menos.
+    det.open = !resumen && document.documentElement.dataset.tema !== "despacho";
+    const res = document.createElement("summary");
+    res.textContent = resumen || "Ver detalle tecnico";
+    det.append(res, c);
+    div.append(q, det);
+  } else {
+    div.append(q, c);
+  }
+
+  flujo.append(div);
+  if (pegado) flujo.scrollTop = flujo.scrollHeight;
+}
+
+// Lo factual y corto de un uso de herramienta: sobre QUE, y CUANTO.
+// Reusa las mismas reglas que el visor (`DONDE_TRABAJA`, el nombre de
+// una ruta, el principio de una orden) a proposito: dos sitios que
+// resumen la misma entrada con dos reglas distintas acaban diciendo
+// cosas distintas de lo mismo, que es como divergieron los tres
+// normalizadores de `voz/`.
+// >>> QUE CAMPO DESCRIBE A CADA HERRAMIENTA EN UN RENGLON <<<
+// No se puede sacar recorriendo una lista en orden, y eso lo destapo una
+// prueba contra las formas reales: `Grep` lleva `pattern` Y `path`, asi
+// que con una lista donde la ruta va primero el resumen decia la CARPETA
+// -- "x" -- en vez del patron que se busca. Es la misma familia del
+// rotulo que enseñaba el nombre del directorio: una regla que recorre en
+// orden acaba acertando con unas herramientas y mintiendo con otras.
+// El visor usa los mismos campos pero puede permitirse la ruta como
+// rotulo, porque enseña ADEMAS el cuerpo debajo. Aqui solo hay una
+// linea, asi que tiene que ser la que distingue.
+const LO_QUE_DESCRIBE = {
+  Write: "file_path", Edit: "file_path", NotebookEdit: "notebook_path",
+  Read: "file_path", Bash: "command", PowerShell: "command",
+  Grep: "pattern", Glob: "pattern", WebFetch: "url", WebSearch: "query",
+  Task: "prompt",
+};
+
+function resumenDeUso(e) {
+  const entrada = e.entrada || {};
+  const partes = [];
+  const rutas = new Set(DONDE_TRABAJA.filter(p => p[1] === "ruta")
+                                     .map(p => p[0]));
+  // El campo propio de esa herramienta; y si no la conocemos, lo primero
+  // que se reconozca -- que es mejor que nada y no inventa.
+  const preferido = LO_QUE_DESCRIBE[e.herramienta];
+  const candidatos = (preferido ? [preferido] : [])
+    .concat(DONDE_TRABAJA.map(p => p[0]));
+  for (const clave of candidatos) {
+    const valor = entrada[clave];
+    if (typeof valor !== "string" || !valor.trim()) continue;
+    const limpio = valor.replace(/\s+/g, " ").trim();
+    partes.push(rutas.has(clave) ? soloElNombre(limpio) : acorta(limpio));
+    break;
+  }
+  const escrito = entrada.content ?? entrada.new_string ?? entrada.new_source;
+  if (typeof escrito === "string") {
+    partes.push("%s car".replace("%s", escrito.length));
+  }
+  // >>> TRES SALIDAS, NO DOS <<< Si de esta herramienta no se reconoce
+  // nada, NO se inventa un resumen: se devuelve vacio y el renglon se
+  // queda como estaba, abierto y con su JSON. Un resumen vacio
+  // escondiendo el dato seria perder informacion para que quede bonito.
+  return partes.join(" · ");
+}
+
+function resumeEntrada(e) {
+  if (e.orden_shell) return e.orden_shell;
+  if (e.entrada && e.entrada.file_path) return e.entrada.file_path;
+  return e.descripcion || "";
+}
+
+// Lo que pasa si pulsas ese boton, escrito debajo del boton. Los cuatro
+// temas lo llevan; `despacho` y `nexo` lo pintan en su propia linea, y
+// los otros dos lo dejan mas discreto. Es la diferencia entre elegir y
+// adivinar: "Denegar" no dice si el turno se cae o sigue.
+function consecuencia(texto) {
+  const s = document.createElement("span");
+  s.className = "consecuencia";
+  s.textContent = texto;
+  return s;
+}
+
+function tarjetaPuerta(e) {
+  const caja = document.createElement("div");
+  caja.className = "puerta";
+  caja.dataset.id = e.id_peticion;
+
+  const titulo = document.createElement("h3");
+  const esPregunta = e.clase === "Pregunta";
+  titulo.dataset.ensena = "puerta.titulo";
+  titulo.textContent = esPregunta
+    ? "Claude te pregunta"
+    : "Pide permiso para " + (e.descripcion || e.herramienta);
+  caja.append(titulo);
+
+  if (esPregunta) {
+    for (const texto of (e.enunciados || [])) {
+      const p = document.createElement("div");
+      p.className = "cuerpo";
+      p.dataset.ensena = "puerta.enunciado";
+      p.textContent = texto;
+      caja.append(p);
+    }
+  } else {
+    const motivo = document.createElement("div");
+    motivo.className = "motivo";
+    motivo.dataset.ensena = "puerta.motivo";
+    motivo.textContent = e.herramienta + " - " + resumeEntrada(e);
+    caja.append(motivo);
+  }
+
+  // La verdad de lo que se va a ejecutar, siempre visible. Si esto y la
+  // frase hablada no coinciden, se aprueba una cosa y se ejecuta otra.
+  const crudo = document.createElement("pre");
+  crudo.className = "crudo";
+  crudo.dataset.ensena = "puerta.crudo";
+  // >>> EL ROTULO EXISTE PARA `despacho`, Y NO ES ADORNO <<<
+  // Ese tema va dirigido a gente que no ha visto una linea de ordenes.
+  // Un bloque de letras monoespaciadas sin decir que es se lee como un
+  // error del programa, y lo que hay que entender es que ES LO QUE SE
+  // VA A EJECUTAR. Los otros tres temas no lo pintan: ahi ese bloque ya
+  // se reconoce solo.
+  crudo.dataset.rotulo = "La instruccion exacta que va a ejecutar";
+  crudo.textContent = e.crudo || JSON.stringify(e, null, 1);
+  caja.append(crudo);
+
+  const botones = document.createElement("div");
+  botones.className = "botones";
+  if (esPregunta) {
+    // UN BOTON POR OPCION, y la eleccion viaja con la respuesta. Hasta
+    // el 2026-08-25 aqui ponia "Responder en el chat": permitia la
+    // herramienta SIN decir que se habia elegido, y por fuera se veia
+    // igual que contestarla. Se midio que la eleccion va emparejando el
+    // ENUNCIADO con la ETIQUETA.
+    const preguntas = e.preguntas || [];
+    for (const p of preguntas) {
+      for (const opcion of (p.options || [])) {
+        const b = document.createElement("button");
+        b.className = "si";
+        b.textContent = opcion.label;
+        b.title = opcion.description || "";
+        const respuestas = {};
+        respuestas[p.question] = opcion.label;
+        b.onclick = () => responder(e.id_peticion, true, respuestas);
+        botones.append(b);
+      }
+    }
+  } else {
+    const si = document.createElement("button");
+    si.className = "si";
+    si.dataset.ensena = "puerta.permitir";
+    si.textContent = "Permitir";
+    si.append(consecuencia("Se ejecuta ahora mismo"));
+    si.onclick = () => responder(e.id_peticion, true);
+    botones.append(si);
+  }
+  const no = document.createElement("button");
+  no.className = "no";
+  no.dataset.ensena = "puerta.denegar";
+  no.textContent = esPregunta ? "No contestar ahora" : "Denegar";
+  if (!esPregunta) no.append(consecuencia("No se hace, y el turno sigue"));
+  no.onclick = () => responder(e.id_peticion, false);
+  botones.append(no);
+
+  // >>> LA TERCERA SALIDA, QUE HASTA HOY SOLO EXISTIA EN EL MODELO <<<
+  // JC-0002 decidio que el silencio NO es un no: son tres respuestas y
+  // no dos, porque la sesion espera indefinidamente (medido: 140 s sin
+  // timeout) y sobre esa espera se construye el escalado a Telegram.
+  // Pero la pantalla solo pintaba DOS botones para un permiso, asi que
+  // la unica forma de ejercer la tercera era no tocar nada -- o sea que
+  // estaba, pero no se veia, y lo que no se ve no se elige. Quien no
+  // estaba seguro acababa denegando "por si acaso", que convierte un
+  // "no lo se" en un "no": exactamente el colapso que este proyecto
+  // no se permite.
+  //
+  // NO manda nada. No puede: contestar cualquier cosa dejaria de ser
+  // no contestar. Lo unico que hace es apagar la alarma y decir por
+  // escrito que la peticion sigue viva -- la tarjeta NO se cierra ni se
+  // encoge, porque una puerta que no se ve es una que no se contesta.
+  //
+  // En una PREGUNTA no aparece: alli "No contestar ahora" ya es el
+  // segundo boton, y significa otra cosa (deniega la herramienta sin
+  // elegir opcion), que es como se construyo el 2026-08-25.
+  if (!esPregunta) {
+    const luego = document.createElement("button");
+    luego.className = "no espera";
+    luego.dataset.ensena = "puerta.esperar";
+    luego.textContent = "No contestar ahora";
+    luego.append(consecuencia("Queda pendiente, y te aviso al movil"));
+    luego.onclick = () => {
+      caja.classList.add("aplazada");
+      luego.disabled = true;
+    };
+    botones.append(luego);
+  }
+  caja.append(botones);
+  zonaPendientes.append(caja);
+}
+
+function quitaTarjeta(id) {
+  for (const caja of zonaPendientes.querySelectorAll(".puerta")) {
+    if (caja.dataset.id === id) caja.remove();
+  }
+}
+
+async function responder(id, permitir, respuestas) {
+  quitaTarjeta(id);
+  const r = await pide("/responder", {
+    method: "POST",
+    body: JSON.stringify({ id_peticion: id, permitir: permitir,
+                           respuestas: respuestas || null,
+                           motivo: permitir ? "" : "El usuario dijo que no." }),
+  });
+  const datos = await r.json();
+  // false = otro canal contesto antes. No es un error: es la carrera.
+  if (!datos.ok) pinta("aviso", "consola", "Esa peticion ya la habia contestado otro canal.");
+}
+
+// >>> LA CAJA NO SE VACIA HASTA QUE EL SERVIDOR LO ACEPTA <<<
+// Se reporto el 2026-09-03: al darle a Enter el texto desaparecia y no
+// se veia reflejado hasta minutos despues, con toda la pinta de haberse
+// trabado. Esta funcion hacia `caja.value = ""` ANTES del POST,
+// y `POST /turno` es sincrono: abre la sesion de Claude Code -- medido,
+// 6,65 s con el binario en frio -- y solo entonces llama a
+// `anuncia_turno`, que es lo unico que PINTA lo que escribiste. O sea
+// que entre el Enter y el primer pixel no habia absolutamente nada, y
+// encima el texto ya no estaba para volver a intentarlo.
+//
+// >>> Y NO SE PINTA LA LINEA ANTES DE TIEMPO, A PROPOSITO <<<
+// Lo facil seria un eco local al apretar Enter. Pero entonces la
+// pantalla diria "tu (consola): <texto>" para un turno que el servidor
+// todavia puede RECHAZAR -- si el suelo no muerde, `asegurar_sesion`
+// devuelve `ok: false` y no se manda nada. Es la misma regla de la
+// tira ("un `Write` denegado NO es una pieza"): lo que se ve tiene que
+// ser lo que paso. Asi que el texto se QUEDA donde estaba, la caja se
+// bloquea, y la linea la pinta el `TurnoDelUsuario` que llega por SSE
+// cuando de verdad se mando.
+// >>> LA CAJA CRECE CON LO QUE ESCRIBES (2026-09-03) <<<
+// Se reporto usandolo: la caja de texto no crecia. Se desplazaba su
+// propio scroll hacia abajo, asi que escribiendo un poco largo solo se
+// veia un renglon, cortado.
+// Un `<textarea rows="1">` NO crece solo: se queda a un renglon y hace
+// scroll dentro, asi que dictando una orden larga -- que es justo lo que
+// se hace con este programa -- no se puede releer lo que se ha escrito
+// antes de mandarlo.
+//
+// >>> HAY QUE PONER `auto` ANTES DE MEDIR, Y NO ES UN TRUCO <<<
+// `scrollHeight` de un elemento con altura fija devuelve el alto del
+// CONTENIDO, que sirve para crecer; pero si no se suelta la altura
+// primero, al BORRAR texto la caja nunca encoge -- el contenido ya cabe,
+// asi que `scrollHeight` se queda en el alto viejo y la caja se queda
+// grande para siempre. Con `auto` se mide lo que de verdad ocupa ahora.
+//
+// >>> Y EL REGISTRO SE VUELVE A PEGAR AL FINAL <<<
+// `#flujo` es `flex-grow:1`: cuando el pie crece, el registro ENCOGE, y
+// quien estaba mirando el final se queda unos pixeles por encima sin
+// haber tocado nada. Se mide si estaba pegado ANTES de mover la altura y
+// se repega despues. Es la misma regla del visor del POV: seguir el
+// final solo mientras quien mira esta en el final.
+function ajustaCaja() {
+  const caja = document.getElementById("texto");
+  const pegado = flujo.scrollHeight - flujo.scrollTop - flujo.clientHeight < 60;
+  caja.style.height = "auto";
+  caja.style.height = caja.scrollHeight + "px";
+  if (pegado) flujo.scrollTop = flujo.scrollHeight;
+}
+document.getElementById("texto").addEventListener("input", ajustaCaja);
+ajustaCaja();
+
+async function manda() {
+  const caja = document.getElementById("texto");
+  const boton = document.getElementById("mandar");
+  const texto = caja.value.trim();
+  if (!texto) return;
+  const rotulo = boton.textContent;
+  caja.disabled = true;
+  boton.disabled = true;
+  boton.textContent = "MANDANDO…";
+  try {
+    const r = await pide("/turno", { method: "POST",
+                                     body: JSON.stringify({ texto }) });
+    // >>> Y AQUI HABIA UN SEGUNDO FALLO EN LAS MISMAS CINCO LINEAS <<<
+    // `POST /turno` contesta `{ok: false, motivo: ...}` cuando la sesion
+    // no se puede abrir -- suelo sin verificar, senuelo que no muerde --,
+    // y esto se lo tragaba entero. El texto desaparecia y no pasaba nada
+    // NI SE DECIA POR QUE: exactamente el fallo mudo que este proyecto
+    // persigue desde JC-0007.
+    const datos = await r.json().catch(() => ({ ok: r.ok }));
+    if (datos.ok === false) {
+      pinta("error", "no se mando", datos.motivo || "el servidor lo rechazo");
+      return;   // el texto se queda en la caja: es lo unico que hay
+    }
+    caja.value = "";
+    // Sin esto la caja se queda con el alto de lo que acabas de mandar,
+    // pero VACIA: un hueco enorme con un cursor dentro. Vaciar el valor
+    // no dispara `input`, asi que hay que decirlo a mano.
+    ajustaCaja();
+  } catch (e) {
+    pinta("error", "no se mando",
+          "no se pudo hablar con Jarvis: " + e);
+  } finally {
+    caja.disabled = false;
+    boton.disabled = false;
+    boton.textContent = rotulo;
+    caja.focus();
+  }
+}
+document.getElementById("mandar").onclick = manda;
+document.getElementById("texto").addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); manda(); }
+});
+
+const fuente = new EventSource("/eventos?ficha=" + encodeURIComponent(FICHA));
+fuente.onmessage = (ev) => {
+  const e = JSON.parse(ev.data);
+  switch (e.clase) {
+    case "Inicio":
+      // >>> `init` LLEGA EN CADA TURNO, NO AL ABRIR LA SESION <<<
+      // Esta medido (JC-0003) y es contraintuitivo. Pintarlo tal cual
+      // hacia que la pagina dijera "Sesion abierta" tres veces en una
+      // conversacion de tres turnos, y el usuario pregunto -- con razon
+      // -- si se estaba abriendo una sesion por instruccion. NO: es una
+      // sola, mismo `session_id`, contexto intacto.
+      if (e.session_id && e.session_id !== sesionActual) {
+        sesionActual = e.session_id;
+        pinta("auto", "sesion", "Sesion abierta en " + e.directorio +
+              " con " + e.modelo);
+      } else {
+        pinta("auto", "turno", "Turno nuevo en la misma sesion");
+      }
+      break;
+    case "TurnoDelUsuario":
+      // >>> EL RITUAL NO LO DIJO EL USUARIO <<< Al cambiar de proyecto,
+      // Jarvis manda solo "hola, en que nos quedamos?" (ADR-0029). Es el
+      // flujo correcto y se queda, pero pintarlo como "tu (voz)" decia
+      // que lo habias dicho tu -- y esta linea existe precisamente para
+      // que veas QUE dijiste. Lo corrigio el usuario el 2026-08-27:
+      // "lo del ritual esta bien... solamente que no es mi voz".
+      if (e.origen === "ritual") {
+        pinta("ritual", "jarvis (al abrir)", e.texto);
+      } else {
+        pinta("usuario", "tu (" + e.origen + ")", e.texto);
+      }
+      break;
+    case "Texto":
+      pinta("", "claude", e.texto);
+      break;
+    case "Pensamiento":
+      pinta("pensamiento", "pensando", e.texto);
+      break;
+    case "UsoHerramienta":
+      pinta("herramienta", e.herramienta,
+            JSON.stringify(e.entrada).slice(0, 400), resumenDeUso(e));
+      enDirecto.usando = { id: e.id_uso, que: queHace(e) };
+      pintaCabezal();
+      break;
+    case "ResultadoHerramienta":
+      pinta(e.es_error ? "error" : "herramienta",
+            e.es_error ? "fallo" : "resultado",
+            (e.contenido || "").slice(0, 600));
+      // Se apaga con SU resultado y no con el primero que llegue: una
+      // sesion puede tener dos herramientas en vuelo, y apagar la de
+      // ahora porque acabo la anterior dejaria el hueco mintiendo.
+      if (enDirecto.usando && enDirecto.usando.id === e.id_uso) {
+        enDirecto.usando = null;
+        pintaCabezal();
+      }
+      break;
+    case "Resuelta":
+      pinta("auto", "permitido solo",
+            e.puerta.herramienta + " - " + e.decision.motivo);
+      break;
+    case "Puerta":
+    case "Pregunta":
+      tarjetaPuerta(e);
+      break;
+    case "RespuestaDelUsuario":
+      pinta("usuario", "tu (" + e.origen + ")",
+            e.permitir ? "Permitido" : "Denegado");
+      break;
+    case "Reintento":
+      pinta("aviso", "sin servidor",
+            "Reintento " + e.intento + " de " + e.intentos_maximos +
+            "; espera " + (e.espera_ms / 1000).toFixed(1) + " s.");
+      break;
+    case "Limite":
+      pinta(e.agotado ? "error" : "aviso", "cuota",
+            (e.es_semanal ? "Semanal" : "De sesion") + " al " +
+            e.porcentaje + " %.");
+      break;
+    case "Fin":
+      costeTotal += e.coste_usd || 0;
+      if (e.es_error || e.razon_terminal === "api_error") {
+        pinta("error", "turno fallido", e.texto);
+      }
+      break;
+    // >>> LOS DOS QUE NO SON EVENTOS, AUNQUE VENGAN POR AQUI <<<
+    // Un evento cuenta algo que paso y se acumula en el registro; estos
+    // dos dicen COMO ESTAN LAS COSAS AHORA y solo importa el ultimo. Por
+    // eso no se pintan en el flujo: mueven el cabezal y la tira. El
+    // servidor los manda solo cuando cambian, y no los guarda en la
+    // historia (guarda uno de cada, ver `Consola._ultimo_estado`).
+    case "Tarea":
+      enDirecto = { tarea: e.tarea || "", origen: e.tarea_origen || "",
+                    desde: e.desde || (Date.now() / 1000),
+                    trabajando: !!e.trabajando,
+                    // Se ARRASTRA mientras se trabaje: un latido llega
+                    // por cambiar la frase, no por acabar la herramienta,
+                    // y perderla aqui apagaria en cada latido la unica
+                    // linea del cabezal que va al ritmo del trabajo. Al
+                    // cerrar el turno se va con todo lo demas.
+                    usando: e.trabajando ? enDirecto.usando : null };
+      pintaTarea();
+      // El bloque aparece al empezar a trabajar y se retira al acabar si
+      // no dejo nada, asi que hay que repasarlo con cada latido.
+      pintaPiezas(ultimoProducido);
+      break;
+    case "Producido":
+      ultimoProducido = e;
+      pintaPiezas(e);
+      break;
+    // El POV. Tampoco son eventos: son el fotograma de ahora y lo que se
+    // le añade. No se pintan en el registro -- seria contar treinta veces
+    // por turno lo que el registro ya cuenta una.
+    case "Plano":
+      pintaPlano(e);
+      break;
+    case "Cuadro":
+      creceElPlano(e);
+      break;
+    case "Aviso":
+      // Lo que el arranque esta haciendo AHORA MISMO, mientras el POST
+      // sigue bloqueado. Llega por SSE, que es otro hilo del servidor, o
+      // sea que se ve DURANTE la espera y no despues -- que es lo unico
+      // que lo distingue de no decir nada.
+      pinta("auto", "arranque", e.motivo);
+      break;
+    case "SinPuerta":
+      pinta("error", "arranque abortado", e.motivo);
+      break;
+    case "Caida":
+      zonaPendientes.textContent = "";
+      pinta("error", "sesion caida",
+            "Termino con codigo " + e.codigo +
+            (e.pendientes_perdidas ? "; se perdieron " +
+             e.pendientes_perdidas + " peticiones sin contestar." : ""));
+      break;
+  }
+};
+
+// Lo ultimo que mando el servidor de la tira. Se guarda porque el
+// cabezal puede tener que repintarla sin que haya llegado ninguna pieza
+// nueva -- al empezar y al acabar un turno.
+let ultimoProducido = { piezas: [], olvidadas: 0 };
+
+// >>> `en_reposo` NO ES `caida`, Y HASTA EL 2026-09-09 SE PINTABAN
+// IGUAL <<< Aqui habia cuatro entradas y el servidor mandaba `caida`
+// tambien para una sesion que NUNCA se abrio -- que es como arranca
+// Jarvis siempre, a proposito. O sea: rojo, alarma y un contador
+// subiendo, en cada arranque, hasta que pides la primera cosa.
+// El tono es `quieto` y no `bien`: en marcha y en reposo son estados
+// distintos y no pueden verse igual. Ver `Sesion.en_reposo`.
+const ETIQUETAS = {
+  bien: ["en marcha", "bien"],
+  en_reposo: ["en reposo · se abre al primer turno", "quieto"],
+  esperandote: ["te espera", "duda"],
+  callada: ["callada, no se si piensa o no llega", "duda"],
+  sin_servidor: ["sin servidor", "mal"],
+  caida: ["caida", "mal"],
+};
+
+// --- EL POV: verle trabajar, no leer lo que hizo (2026-09-02) -----
+//
+// >>> QUE SE PIDE DE ESTE VISOR <<<
+// Ver el POV de Claude en primera persona, como una pelicula, para que
+// se sienta vivo: el trabajo mientras ocurre, no solo lo que queda
+// escrito en la consola.
+//
+// >>> AQUI NO SE ANIMA NADA QUE NO HAYA PASADO <<<
+// Es la regla entera de este bloque. Lo que el modelo REDACTA llega en
+// trozos y se ve crecer de verdad -- medido, 17 trozos y 6,88 s para un
+// documento de 1468 caracteres. Lo que una herramienta DEVUELVE llega en
+// un solo trozo (un `Read` de 1400 caracteres tarda 0,02 s), asi que
+// aparece de golpe y el visor lo dice: `aterrizo`. Fingir que se escribio
+// seria un mock en produccion, y del peor tipo, porque parece
+// informacion.
+//
+// El servidor manda dos cosas: `Plano` (el fotograma entero, cuando
+// cambia o al abrir la pestaña) y `Cuadro` (lo que se le añade). Se
+// acumula aqui porque mandar el plano entero en cada trozo seria
+// cuadratico -- un documento de 40 KB son cientos de trozos.
+
+const RECUERDA_POV = "jarvis.pov.oculto";
+const RECUERDA_PLEGADO = "jarvis.rail.plegado";
+let planoActual = null;
+let povTexto = "";
+
+// >>> ¿SE ESTA MIRANDO EL FINAL? (2026-09-03) <<<
+// El visor se pega solo al ultimo renglon, que es lo que le da el aire
+// de maquina de escribir. Al abrirle el scroll eso se vuelve un
+// problema: los trozos llegan cada decimas de segundo (medido: el mayor
+// hueco de un turno es 1,05 s), asi que subir a mirar algo te devolveria
+// abajo antes de poder leerlo.
+// La regla es la de cualquier consola que sigue un log: **se sigue al
+// final solo mientras el que mira ESTA en el final**. En cuanto sube, se
+// deja de seguir, y al volver abajo se sigue otra vez.
+let povPegado = true;
+const MARGEN_PEGADO = 24;
+
+function povAlFinal(caja) {
+  return caja.scrollHeight - caja.scrollTop - caja.clientHeight <= MARGEN_PEGADO;
+}
+
+// De la palabra del servidor al rotulo. Se traduce AQUI y no en el
+// servidor porque `que` se COMPARA (`escribiendo` decide el cursor), y
+// una cadena que se compara no se traduce nunca -- es la leccion que ya
+// dejo escrita `test_lo_que_se_COMPARA_no_se_traduce`.
+const HACIENDO = {
+  escribiendo: "ESCRIBIENDO",
+  leyendo: "LEYENDO",
+  ejecutando: "EJECUTANDO",
+  buscando: "BUSCANDO",
+  pensando: "PENSANDO",
+  diciendo: "DICIENDO",
+  mirando: "MIRANDO",
+  delegando: "DELEGANDO",
+  planeando: "PLANEANDO",
+  usando: "USANDO",
+};
+
+function povOculto() {
+  try { return localStorage.getItem(RECUERDA_POV) === "1"; }
+  catch (e) { return false; }
+}
+
+function guardaPov(oculto) {
+  try { localStorage.setItem(RECUERDA_POV, oculto ? "1" : "0"); }
+  catch (e) { /* que no se recuerde no puede romper la pantalla */ }
+}
+
+function pintaPlano(p) {
+  planoActual = p;
+  povTexto = p.texto || "";
+  // Un plano NUEVO reemplaza el texto entero, asi que estar "subido" en
+  // el anterior no significa nada: se vuelve a seguir el final. Sin
+  // esto, mirar atras una vez dejaba el visor congelado para siempre.
+  povPegado = true;
+  dibujaPov();
+}
+
+function creceElPlano(c) {
+  // Un `Cuadro` de un plano que ya no es el de ahora se tira: puede
+  // llegar uno en vuelo justo cuando la camara acaba de moverse, y
+  // pegarlo al plano nuevo mezclaria dos cosas distintas en la pantalla.
+  if (!planoActual || c.id !== planoActual.id) return;
+  povTexto += c.mas || "";
+  dibujaPov();
+}
+
+function dibujaPov() {
+  const caja = document.getElementById("pov");
+  const boton = document.getElementById("povMuestra");
+  if (!planoActual) {
+    caja.hidden = true;
+    boton.hidden = true;
+    return;
+  }
+  const oculto = povOculto();
+  caja.hidden = oculto;
+  boton.hidden = !oculto;
+  if (oculto) return;
+
+  const p = planoActual;
+  caja.classList.toggle("quieto", !p.parcial || !p.vivo);
+  caja.classList.toggle("aterrizo", !!p.aterrizo);
+  caja.classList.toggle("negado", !!p.negado);
+  document.getElementById("povLatido").className =
+    "latido" + (p.vivo && p.parcial ? " late" : "");
+  document.getElementById("povQue").textContent =
+    HACIENDO[p.que] || HACIENDO.usando;
+  document.getElementById("povSobre").textContent = p.sobre || "";
+
+  const cuerpo = document.getElementById("povCuerpo");
+  // >>> REPONER EL TEXTO ENTERO BORRA EL SCROLL, ASI QUE SE GUARDA <<<
+  // `textContent = ...` deja `scrollTop` en 0. Sin esto, cada trozo --
+  // decimas de segundo -- daria un salto al principio, que es peor que
+  // no tener scroll.
+  const donde = cuerpo.scrollTop;
+  cuerpo.textContent = povTexto;
+  // Pegado al final SOLO si ahi estaba: es lo que hace que se lea como
+  // una maquina de escribir sin arrastrar al que subio a mirar algo.
+  cuerpo.scrollTop = povPegado ? cuerpo.scrollHeight : donde;
+  document.getElementById("povAtras").hidden = povPegado;
+
+  // >>> EL PIE ES DONDE ESTA LA HONESTIDAD DE TODO ESTO <<<
+  let nota = "";
+  if (p.negado) {
+    // Lo que se vio escribir y no ocurrio. El contenido viaja ANTES de
+    // la puerta, asi que un documento denegado se habra visto entero.
+    nota = "NO SE HIZO";
+  } else if (p.hay_imagen) {
+    nota = "la imagen esta abajo";
+  } else if (p.aterrizo) {
+    // No se escribio delante de nadie: llego de golpe. Medido: un Read
+    // de 1400 caracteres, en un trozo, 0,02 s.
+    nota = "llego de golpe";
+  } else if (!p.vivo) {
+    nota = "en pausa";
+  } else if (p.parcial) {
+    nota = "en vivo";
+  }
+  document.getElementById("povNota").textContent = nota;
+}
+
+// Quien decide si se sigue al final es el que MIRA, y se sabe por donde
+// deja la barra. Nuestra propia asignacion de `scrollTop` dispara este
+// mismo evento y vuelve a poner `true`, que es justo lo que se quiere.
+document.getElementById("povCuerpo").addEventListener("scroll", () => {
+  const caja = document.getElementById("povCuerpo");
+  povPegado = povAlFinal(caja);
+  document.getElementById("povAtras").hidden = povPegado;
+});
+
+document.getElementById("povCierra").addEventListener("click", () => {
+  guardaPov(true);
+  dibujaPov();
+});
+document.getElementById("povMuestra").addEventListener("click", () => {
+  guardaPov(false);
+  dibujaPov();
+});
+
+// --- PLEGAR PERIMETRO Y CARGA (2026-09-03) -----------------------
+//
+// Perimetro y carga se pueden ocultar para que el visor de
+// "ejecutandose" pueda crecer. No hay nada que calcular: el
+// rail es una columna y el visor es el unico item con `flex-grow`, asi
+// que el hueco que suelta un modulo se lo lleva el entero.
+//
+// Se recuerda en `localStorage` por la misma razon que el visor oculto:
+// esto es una preferencia de quien mira, y volver a plegarlo en cada
+// arranque seria pedirselo cada vez.
+function plegados() {
+  try {
+    const crudo = JSON.parse(localStorage.getItem(RECUERDA_PLEGADO) || "[]");
+    return new Set(Array.isArray(crudo) ? crudo : []);
+  } catch (e) { return new Set(); }
+}
+
+function guardaPlegados(cuales) {
+  try {
+    localStorage.setItem(RECUERDA_PLEGADO, JSON.stringify([...cuales]));
+  } catch (e) { /* que no se recuerde no puede romper la pantalla */ }
+}
+
+function pintaPlegados() {
+  const cuales = plegados();
+  for (const boton of document.querySelectorAll("[data-pliega]")) {
+    const modulo = document.getElementById(boton.dataset.pliega);
+    if (!modulo) continue;
+    const cerrado = cuales.has(boton.dataset.pliega);
+    modulo.classList.toggle("plegado", cerrado);
+    // El rotulo del boton dice lo que VA A PASAR al pulsarlo, no el
+    // estado en que esta: es la misma forma que ya usa el visor.
+    boton.textContent = cerrado ? "MOSTRAR" : "OCULTAR";
+  }
+}
+
+for (const boton of document.querySelectorAll("[data-pliega]")) {
+  boton.addEventListener("click", () => {
+    const cuales = plegados();
+    const cual = boton.dataset.pliega;
+    if (cuales.has(cual)) cuales.delete(cual); else cuales.add(cual);
+    guardaPlegados(cuales);
+    pintaPlegados();
+  });
+}
+pintaPlegados();
+
+// --- TE DEJO v3: LA TIRA Y EL CABEZAL (2026-09-02) ---------------
+//
+// >>> ESTO NO ES VISION Y NO CUESTA UN TOKEN <<<
+// Son eventos que ya teniamos: cada Write/Edit trae su file_path, y las
+// imagenes de las herramientas llegaban y se tiraban en protocolo.py.
+// Nada de esto sale de la maquina.
+//
+// >>> Y VAN TRES FORMAS, PORQUE LAS DOS PRIMERAS ERAN LA MISMA <<<
+//   v1  lista de NOMBRES en el rail -> "feo, muerto, raro".
+//   v2  lo ultimo en grande + fichas -> "no se siente vivo todavia, no
+//       se siente como si fuese en vivo como transmision".
+// Las dos enseñaban un ESTADO. Esta enseña una SECUENCIA y, sobre todo,
+// tiene señal aunque no caiga nada: el cabezal late mientras se trabaja.
+// Ese fue el diagnostico -- el panel no participaba del turno --, y por
+// eso lo primero de aqui abajo no son las piezas, es el cabezal.
+
+const RECUERDA_VIVO = "jarvis.vivo.oculto";
+let piezasVistas = "";
+let ultimaPintada = null;    // para animar la que ENTRA, y solo esa
+const vistazos = new Map();  // id -> primeras lineas ya traidas
+
+// >>> EL CABEZAL CUELGA DE LOS EVENTOS, NO DEL SONDEO DE `/estado` <<<
+// Era el punto 1 de los cuatro que dejo escritos la v2, y es el que
+// decide si esto se siente en vivo: `/estado` se pide cada 2 s, asi que
+// un cabezal colgado de ahi va hasta dos segundos por detras de la linea
+// que el usuario acaba de ver aparecer en el registro. Eso no se lee
+// como "un poco lento": se lee como muerto, que es justo la queja que
+// hay que resolver. El servidor manda `Tarea` cuando algo CAMBIA.
+let enDirecto = { tarea: "", origen: "", desde: Date.now() / 1000,
+                  trabajando: false, usando: null };
+
+// >>> LO QUE CORRE AHORA MISMO, QUE NO ES LO QUE DIJO QUE HACIA <<<
+// La frase del cabezal es la NARRACION, y solo cambia cuando Claude
+// cuenta algo y detras viene una herramienta. Medido contra las 38
+// sesiones de `logs/puente/`: 236 de 343 herramientas (69 %) corren
+// dentro de una racha de 3 o mas con la misma frase, y la mas larga es
+// de 16. O sea que la mayor parte del rato la frase va por detras -- que
+// es exactamente lo que reporto el usuario.
+// Esto no la sustituye: la acompaña. Se enciende con el `UsoHerramienta`
+// y se apaga con SU resultado, asi que cuando esta vacio es porque de
+// verdad no hay ninguna corriendo (Claude esta pensando o escribiendo).
+// Es lo unico del cabezal que se mueve al ritmo del trabajo.
+// Que campo de la entrada dice SOBRE QUE, y de que clase es. La clase no
+// se adivina mirando el valor: de una RUTA interesa el final -- veinte
+// carpetas iguales y luego el nombre, que es lo unico que la distingue de
+// la de al lado --, y de una ORDEN interesa el principio, que es el
+// verbo. Adivinarlo por si el texto lleva barras fallaba con
+// `C:\Mis documentos\a.md` y tambien con un `grep` que lleve una ruta
+// dentro; y esa es la clase de regla que en este proyecto ya ha mentido
+// tres veces sobre lo que hace una orden.
+const DONDE_TRABAJA = [
+  ["file_path", "ruta"], ["notebook_path", "ruta"], ["path", "ruta"],
+  ["pattern", "texto"], ["command", "texto"], ["url", "texto"],
+  ["query", "texto"], ["prompt", "texto"],
+];
+
+function queHace(e) {
+  const entrada = e.entrada || {};
+  for (const [clave, clase] of DONDE_TRABAJA) {
+    const valor = entrada[clave];
+    if (typeof valor !== "string" || !valor.trim()) continue;
+    const limpio = valor.replace(/\s+/g, " ").trim();
+    return e.herramienta + " " + (clase === "ruta" ? soloElNombre(limpio)
+                                                   : acorta(limpio));
+  }
+  return e.herramienta;
+}
+
+function soloElNombre(ruta) {
+  // Las dos barras, que aqui llegan rutas de Windows y de Claude Code.
+  const trozos = ruta.split(/[\\/]/);
+  return trozos[trozos.length - 1] || ruta;
+}
+
+function acorta(texto) {
+  return texto.length > 38 ? texto.slice(0, 38) + "..." : texto;
+}
+
+function pintaCabezal() {
+  const barra = document.getElementById("vivoCabezal");
+  barra.classList.toggle("directo", enDirecto.trabajando);
+  document.getElementById("vivoDirecto").textContent =
+    enDirecto.trabajando ? "EN DIRECTO" : "TE DEJO";
+  document.getElementById("vivoQue").textContent =
+    enDirecto.trabajando ? enDirecto.tarea : "";
+  const usando = document.getElementById("vivoHerramienta");
+  usando.textContent = (enDirecto.trabajando && enDirecto.usando)
+    ? enDirecto.usando.que : "";
+  usando.title = usando.textContent;
+  // >>> EL RELOJ LO LLEVA EL NAVEGADOR, Y NO SE PIDE <<<
+  // El servidor manda CUANDO empezo, en epoca absoluta, y aqui se resta.
+  // Mandar "van 14 s" obligaria a un evento por segundo, y ademas
+  // mentiria en la pestaña que se abre a mitad de turno: el replay le
+  // llega de golpe y el reloj arrancaria de cero.
+  const van = Math.max(0, Date.now() / 1000 - enDirecto.desde);
+  document.getElementById("vivoReloj").textContent =
+    enDirecto.trabajando ? reloj(van) : (van > 8 ? hace(van) : "");
+}
+
+function reloj(s) {
+  const m = Math.floor(s / 60);
+  return m + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+}
+
+// "hace %s" va ENTERO al traductor porque el ingles lo dice al reves
+// ("%s ago"): con un "hace " suelto no habria forma de reordenarlo y
+// saldria "ago 4 min" sin que ningun test lo viera.
+function hace(s) {
+  const cuanto = s < 90 ? Math.round(s) + " s"
+               : s < 5400 ? Math.round(s / 60) + " min"
+               : Math.round(s / 3600) + " h";
+  return "hace %s".replace("%s", cuanto);
+}
+
+// Late en la PAGINA, no contra el servidor: esto es un reloj, no un
+// sondeo. A 250 ms el salto de segundo se ve al instante y no cuesta.
+setInterval(() => {
+  if (!document.getElementById("vivo").hidden) pintaCabezal();
+}, 250);
+
+function vivoOculto() {
+  try { return localStorage.getItem(RECUERDA_VIVO) === "1"; }
+  catch (e) { return false; }   // en una ventana sin almacen, se ensena
+}
+
+function guardaVivo(oculto) {
+  try { localStorage.setItem(RECUERDA_VIVO, oculto ? "1" : "0"); }
+  catch (e) { /* que no se recuerde no puede romper la pantalla */ }
+}
+
+// `producido` llega por DOS caminos y con la MISMA forma a proposito: su
+// evento (al instante, cuando aterriza algo) y `/estado` (cada 2 s, que
+// ademas refresca lo que cambia sin evento -- un archivo que alguien
+// borra por fuera deja de `existe`). Un solo dibujante para los dos.
+function pintaPiezas(datos) {
+  const piezas = (datos && datos.piezas) || [];
+  const olvidadas = (datos && datos.olvidadas) || 0;
+  const vivo = document.getElementById("vivo");
+  const boton = document.getElementById("vivoMuestra");
+
+  // >>> SIN NADA Y SIN TURNO, EL BLOQUE NO EXISTE <<<
+  // Una caja con titulo y vacia era la mitad de lo que se sentia muerto
+  // en la v1. Pero TRABAJANDO si existe, aunque no haya caido todavia
+  // ninguna pieza: eso es el cabezal solo, una linea que late, y es
+  // exactamente la señal que le faltaba a la v2.
+  if (!piezas.length && !enDirecto.trabajando) {
+    vivo.hidden = true;
+    boton.hidden = true;
+    piezasVistas = "";
+    return;
+  }
+  const oculto = vivoOculto();
+  vivo.hidden = oculto;
+  boton.hidden = !oculto;
+  if (oculto) { piezasVistas = ""; return; }
+  pintaCabezal();
+
+  // La firma evita repintar con lo mismo: repintar reiniciaria el scroll
+  // de la tira y volveria a pedir el vistazo de cada documento.
+  const firma = piezas.map(p => p.id + p.clase + p.existe).join("|")
+                + "/" + olvidadas;
+  if (firma === piezasVistas) return;
+  piezasVistas = firma;
+
+  const tira = document.getElementById("tira");
+  // Sin piezas, la tira NO se pinta: una banda vacia debajo del cabezal
+  // es la misma caja con titulo y nada dentro que hundio la v1. Con
+  // turno en marcha se queda el cabezal solo, que es una linea que late.
+  tira.hidden = !piezas.length;
+  if (!piezas.length) { piezasVistas = ""; return; }
+  // Si el usuario se ha ido a mirar algo de mas atras, no se le arrastra.
+  // Es la regla de cualquier consola que hace tail: se sigue al final
+  // solo si ya estabas al final.
+  const alFinal = tira.scrollWidth - tira.scrollLeft - tira.clientWidth < 40;
+
+  tira.textContent = "";
+  const marca = document.createElement("span");
+  marca.id = "tiraOlvidadas";
+  marca.hidden = !olvidadas;
+  marca.textContent = "+" + olvidadas;
+  tira.appendChild(marca);
+
+  // >>> AL REVES QUE EN LA v2, Y ESE ES EL CAMBIO <<<
+  // `Producido.piezas` viene con lo mas nuevo delante, que es lo que
+  // quiere una lista. Una tira cuenta el orden en que pasaron las cosas:
+  // lo viejo a la izquierda y lo nuevo entrando por la derecha.
+  const enOrden = piezas.slice().reverse();
+  enOrden.forEach((pieza, i) => {
+    tira.appendChild(tarjeta(pieza, i === enOrden.length - 1));
+  });
+  if (alFinal) tira.scrollLeft = tira.scrollWidth;
+}
+
+function tarjeta(pieza, esUltima) {
+  const caja = document.createElement("button");
+  const hueco = pieza.clase === "hueco";
+  caja.className = "pieza" + (esUltima ? " ultima" : "") + (hueco ? " hueco" : "")
+    // El tachado es para un archivo que se ESPERA encontrar y ya no
+    // esta. Una lapida ya dice lo suyo con el filete discontinuo y con
+    // su texto; tacharla ademas seria decirlo dos veces.
+    + (hueco || pieza.existe || pieza.clase === "imagen" ? "" : " ausente");
+  // Solo la que ENTRA se anima, y una sola vez. Reanimar la tira entera
+  // en cada repintado seria mareo, no vida.
+  if (esUltima && pieza.id !== ultimaPintada) {
+    caja.classList.add("entrando");
+    ultimaPintada = pieza.id;
+  }
+  caja.title = pieza.ruta || pieza.nombre;
+
+  const lienzo = document.createElement("div");
+  lienzo.className = "lienzo";
+  caja.appendChild(lienzo);
+
+  const nombre = document.createElement("span");
+  nombre.className = "comosellama";
+  nombre.textContent = pieza.nombre;
+  caja.appendChild(nombre);
+
+  if (hueco) {
+    // La lapida DICE por que esta vacia. Un hueco callado en una
+    // secuencia dice que ese trabajo no ocurrio, y es mentira.
+    const sello = document.createElement("span");
+    sello.className = "sello";
+    sello.textContent = "se solto para hacer sitio";
+    lienzo.appendChild(sello);
+    caja.disabled = true;
+    return caja;
+  }
+
+  caja.addEventListener("click", () => abreVisor(pieza));
+
+  const url = "/pieza/" + encodeURIComponent(pieza.id) +
+              "?ficha=" + encodeURIComponent(FICHA);
+  if (pieza.clase === "imagen") {
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = pieza.nombre;
+    lienzo.appendChild(img);
+    return caja;
+  }
+  if (!pieza.en_linea || !pieza.existe) {
+    // Un binario no se pinta, y un rectangulo gris no dice nada: se
+    // sella con su extension, que es lo unico que de verdad lo
+    // distingue de la ficha de al lado.
+    const punto = pieza.nombre.lastIndexOf(".");
+    const sello = document.createElement("span");
+    sello.className = "sello";
+    sello.textContent = punto > 0 ? pieza.nombre.slice(punto) : "?";
+    lienzo.appendChild(sello);
+    return caja;
+  }
+
+  // >>> UNA MINIATURA DE UN DOCUMENTO NO ES UNA IMAGEN <<<
+  // Punto 2 de los cuatro. Se pintan sus primeras lineas: un `.md` a
+  // 6 px no se lee, pero se RECONOCE -- un titulo, viñetas, un bloque de
+  // codigo --, y eso es lo que un rectangulo no hace. Sin esto la tira
+  // se llena de losas iguales y vuelve a ser la lista de nombres de la
+  // v1 con otra forma.
+  const pre = document.createElement("pre");
+  lienzo.appendChild(pre);
+  vistazoDe(pieza).then(texto => { pre.textContent = texto; });
+  return caja;
+}
+
+// El vistazo se pide UNA vez por pieza y se guarda: la tira se repinta
+// cada vez que aterriza algo, y sin esto cada repintado seria una
+// lectura de disco por cada documento en pantalla.
+function vistazoDe(pieza) {
+  if (vistazos.has(pieza.id)) return Promise.resolve(vistazos.get(pieza.id));
+  // `vistazo` recorta en el SERVIDOR: traerse 512 KB para pintar cuatro
+  // renglones a 6 px seria pagar el archivo entero por una miniatura.
+  const url = "/pieza/" + encodeURIComponent(pieza.id) +
+              "?ficha=" + encodeURIComponent(FICHA) + "&vistazo=1400";
+  return fetch(url).then(r => r.text()).then(t => {
+    const corto = t.slice(0, 700);
+    vistazos.set(pieza.id, corto);
+    return corto;
+  }).catch(() => "");
+}
+
+async function abreFuera(pieza) {
+  const r = await (await pide("/abrir", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({id: pieza.id}),
+  })).json();
+  if (!r.ok) document.getElementById("visorPie").textContent = r.motivo;
+  return r;
+}
+
+// El interruptor que pidio el usuario. Se recuerda en el navegador y no
+// en los ajustes: es una preferencia de ESTA ventana, se aplica al
+// instante y no hace falta reabrir nada. Si el almacen no esta -- una
+// ventana rara, un WebView sin permisos --, se ensena, que es el estado
+// util.
+document.getElementById("vivoOculta").addEventListener("click", () => {
+  guardaVivo(true);
+  piezasVistas = "";
+  document.getElementById("vivo").hidden = true;
+  document.getElementById("vivoMuestra").hidden = false;
+});
+document.getElementById("vivoMuestra").addEventListener("click", () => {
+  guardaVivo(false);
+  piezasVistas = "";
+  document.getElementById("vivoMuestra").hidden = true;
+  refrescaEstado();
+});
+
+let piezaEnVisor = null;
+
+async function abreVisor(pieza) {
+  piezaEnVisor = pieza;
+  document.getElementById("visorNombre").textContent = pieza.nombre;
+  document.getElementById("visorPie").textContent =
+    (pieza.ruta || "") + (pieza.bytes ? "  -  " + pieza.bytes + " bytes" : "");
+  document.getElementById("visorAbrir").hidden =
+    pieza.clase === "imagen" || !pieza.existe;
+
+  const cuerpo = document.getElementById("visorCuerpo");
+  cuerpo.textContent = "";
+  document.getElementById("visor").hidden = false;
+
+  if (!pieza.en_linea) {
+    const aviso = document.createElement("div");
+    aviso.className = "opaco";
+    aviso.textContent = pieza.existe
+      ? "esto no se pinta aqui; abrelo fuera"
+      : "ya no esta en disco";
+    cuerpo.appendChild(aviso);
+    return;
+  }
+  const url = "/pieza/" + encodeURIComponent(pieza.id) +
+              "?ficha=" + encodeURIComponent(FICHA);
+  if (pieza.clase === "imagen") {
+    const img = document.createElement("img");
+    img.src = url;
+    img.alt = pieza.nombre;
+    cuerpo.appendChild(img);
+    return;
+  }
+  try {
+    const texto = await (await fetch(url)).text();
+    const pre = document.createElement("pre");
+    pre.textContent = texto;
+    cuerpo.appendChild(pre);
+  } catch (e) {
+    const aviso = document.createElement("div");
+    aviso.className = "opaco";
+    aviso.textContent = "no se pudo leer: " + e;
+    cuerpo.appendChild(aviso);
+  }
+}
+
+function cierraVisor() {
+  document.getElementById("visor").hidden = true;
+  piezaEnVisor = null;
+}
+
+document.getElementById("visorCerrar").addEventListener("click", cierraVisor);
+document.getElementById("visor").addEventListener("click", (ev) => {
+  if (ev.target.id === "visor") cierraVisor();
+});
+document.getElementById("visorAbrir").addEventListener("click", () => {
+  if (piezaEnVisor) abreFuera(piezaEnVisor);
+});
+
+// >>> ESC: PRIMERO CIERRA EL VISOR, Y SI NO HAY, PARA EL TURNO <<<
+// El orden no es un capricho. Con el visor abierto, Esc significa
+// "quitame esto de delante" en cualquier programa del mundo; si ademas
+// parase el turno, se perderia trabajo por cerrar una ventana. Y al
+// reves: quien esta mirando trabajar y aprieta Esc quiere parar, que es
+// lo que hace Claude Code en su terminal.
+async function alPulsarEscape() {
+  if (!document.getElementById("visor").hidden) {
+    cierraVisor();
+    return;
+  }
+  try {
+    await pide("/parar", {method: "POST",
+                          headers: {"Content-Type": "application/json"},
+                          body: "{}"});
+  } catch (e) { /* sin sesion viva no hay nada que parar */ }
+}
+
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape") return;
+  // Escribiendo una orden, Esc saca el foco del campo y no para nada:
+  // parar por soltar la tecla equivocada mientras dictas a mano seria el
+  // peor sitio para una sorpresa.
+  if (document.activeElement === document.getElementById("texto")) {
+    document.getElementById("texto").blur();
+    return;
+  }
+  alPulsarEscape();
+});
+
+async function refrescaEstado() {
+  try {
+    const s = await (await pide("/estado")).json();
+    const [texto, tono] = ETIQUETAS[s.salud] || ["?", "duda"];
+    const salud = document.getElementById("salud");
+    // >>> EN REPOSO EL CONTADOR NO CUENTA NADA <<< `silencio_s` mide
+    // desde lo ultimo que llego POR EL CABLE, y si la sesion no se ha
+    // abierto nunca no ha llegado nada: el numero es entonces el rato
+    // que lleva Jarvis encendido, que no es silencio de nadie. Sumarlo
+    // convertia el rotulo en "(140 s en silencio)" y subiendo, o sea la
+    // forma exacta de algo colgado.
+    salud.textContent = texto + (s.salud !== "en_reposo" && s.silencio_s > 3
+      ? " (" + Math.round(s.silencio_s) + " s en silencio)" : "");
+    salud.className = tono;
+    document.getElementById("donde").textContent = s.directorio;
+    ultimoProducido = s.producido || { piezas: [], olvidadas: 0 };
+    pintaPiezas(ultimoProducido);
+    document.getElementById("coste").textContent =
+      costeTotal ? costeTotal.toFixed(3) + " USD" : "";
+    // >>> LOS DOS RELOJES, SIEMPRE, Y NO EL QUE TRAJERA EL EVENTO <<<
+    // Antes ponia "semanal 37 %" o "sesion 30 %" segun el `rateLimitType`
+    // del ultimo evento, que no lo elige nadie: es el reloj que motivo
+    // ESE aviso. Como los dos vienen en el mismo evento, se ensenan los
+    // dos -- y en la direccion en que se preguntan (queda / gastada).
+    // Los dos rotulos van SUELTOS entre comillas y no dentro de una
+    // frase pegada: `nucleo/textos.py` traduce literales `"asi"` enteros,
+    // y "SESION " con su espacio dentro no casaria con ninguna clave. La
+    // pantalla se quedaria a medias en ingles sin dar un solo error.
+    const cuota = document.getElementById("cifraCuota");
+    cuota.textContent = s.limite
+      ? "SESION" + " " + pctCuota(s.limite.sesion, "porcentaje") +
+        " · " + "SEMANA" + " " + pctCuota(s.limite.semana, "porcentaje")
+      : "";
+    // >>> Y SI ALGUN RELOJ SE PASO DEL 100, LA CABECERA LO DICE <<<
+    // (2026-09-07.) Aqui no hay barra que llenar, o sea que el unico
+    // sintoma seria un numero de tres cifras en una linea de numeros:
+    // se lee igual que un 87. La cabecera es lo que NO se pliega, asi
+    // que es donde tiene que estar el aviso. Misma clase que la barra y
+    // el mismo criterio que el SUELO de aqui al lado.
+    cuota.classList.toggle("mal", !!(s.limite && (
+      (s.limite.sesion && !s.limite.sesion.caducada
+       && s.limite.sesion.porcentaje > 100) ||
+      (s.limite.semana && !s.limite.semana.caducada
+       && s.limite.semana.porcentaje > 100))));
+    // El suelo se pinta SIEMPRE, tambien cuando no lo hay: un suelo que
+    // no se ve no se distingue de no tener ninguno.
+    const suelo = document.getElementById("suelo");
+    if (s.suelo) {
+      suelo.textContent = s.suelo.estado === "sin_suelo"
+        ? "SIN SUELO"
+        : "suelo " + diceSuelo(s.suelo.estado) +
+          " (" + s.suelo.zonas + " zonas)";
+      suelo.title = s.suelo.motivo || "";
+      suelo.style.color = (s.suelo.estado === "listo") ? "" : "var(--suelo-roto)";
+    }
+    // La puerta, con la misma regla que el suelo: se dice tambien
+    // cuando esta puesta. Encendido el auto mode no hay ningun otro
+    // sintoma -- se sigue viendo todo, solo que ya nada lo para.
+    const puerta = document.getElementById("puerta");
+    if (s.puerta) {
+      puerta.textContent = s.puerta.auto ? "SIN FRENO" : "puerta puesta";
+      puerta.title = s.puerta.motivo || "";
+      puerta.style.color = s.puerta.auto ? "var(--suelo-roto)" : "";
+    }
+  } catch (e) { /* el servidor se fue; el flujo ya lo dira */ }
+}
+setInterval(refrescaEstado, 2000);
+refrescaEstado();
+
+// --- Las dos vistas de la misma ventana ------------------------------
+//
+// AJUSTES ES UNA PESTAÑA, NO OTRA VENTANA. La primera version abria una
+// ventana aparte y el usuario lo corrigio: "queria una pestaña aparte
+// dentro del mismo aplicativo, dentro de la misma ventana de jarvis".
+//
+// Lo que se esconde al cambiar de vista es TODO lo de la consola, panel
+// de zonas y puertas incluidos: una tarjeta de permiso flotando sobre
+// los ajustes seria una puerta que parece de esta pantalla y no lo es.
+// Lo que NO se para es el flujo de eventos -- las puertas se siguen
+// recogiendo por detras y estan ahi al volver.
+// El indicador de carpetas protegidas de la cabecera lleva a los
+// AJUSTES, que es donde vive ahora: el apartado de PERIMETRO se movio
+// alli desde la pantalla principal, porque es configuracion y no
+// vigilancia, y esta
+// pantalla es para mirar que hace Jarvis AHORA.
+const vistaAjustes = document.getElementById("vistaAjustes");
+const pestanaConsola = document.getElementById("pestanaConsola");
+const pestanaAjustes = document.getElementById("pestanaAjustes");
+const deLaConsola = () => [
+  document.getElementById("nucleo"),
+  document.getElementById("pendientes"),
+  document.getElementById("cuerpo"),
+];
+
+function verAjustes() {
+  if (!vistaAjustes.firstChild) {
+    // Se monta al entrar por primera vez, no al cargar la consola.
+    const marco = document.createElement("iframe");
+    marco.src = "/ajustes";
+    marco.title = "Ajustes de Jarvis";
+    vistaAjustes.appendChild(marco);
+  }
+  for (const el of deLaConsola()) { if (el) el.hidden = true; }
+  vistaAjustes.hidden = false;
+  pestanaAjustes.setAttribute("aria-selected", "true");
+  pestanaConsola.setAttribute("aria-selected", "false");
+}
+
+function verConsola() {
+  vistaAjustes.hidden = true;
+  for (const el of deLaConsola()) { if (el) el.hidden = false; }
+  pestanaConsola.setAttribute("aria-selected", "true");
+  pestanaAjustes.setAttribute("aria-selected", "false");
+}
+
+pestanaAjustes.addEventListener("click", verAjustes);
+// Pinchar en el indicador de carpetas protegidas tambien: es donde el
+// usuario espera encontrarlas despues de habituarse a que estuvieran ahi.
+const indicadorSuelo = document.getElementById("suelo");
+if (indicadorSuelo) {
+  indicadorSuelo.style.cursor = "pointer";
+  indicadorSuelo.title = "ver las carpetas protegidas, en Ajustes";
+  indicadorSuelo.addEventListener("click", verAjustes);
+}
+pestanaConsola.addEventListener("click", verConsola);
+
+// La bandeja tambien puede traerte aqui (menu "Ajustes" de la carcasa).
+window.jarvisVerAjustes = verAjustes;
+
+</script>
+<script>
+"use strict";
+/* =====================================================================
+   EL NUCLEO. Lo unico que se anadio a la logica al cambiar la piel.
+   Lee `/estado`, que desde el 2026-08-26 trae `voz` y `canales`.
+
+   TRES ESTADOS, NO DOS, tambien aqui: sin `--voz` no se pinta "parado",
+   se pinta SIN VOZ. Un asistente apagado y uno que no te oye son cosas
+   distintas y tienen que verse distintas.
+   ===================================================================== */
+const ONDA = document.getElementById("onda");
+for (let i = 0; i < 14; i++) {
+  const b = document.createElement("i");
+  b.style.height = [14,32,56,24,66,40,18,52,30,62,22,44,12,36][i] + "px";
+  b.style.animationDelay = (i * 0.07).toFixed(2) + "s";
+  ONDA.append(b);
+}
+
+// Que significa cada estado PARA QUIEN MIRA. Es la tabla de JC-0011:
+// el nombre solo no dice si te toca hablar.
+const VOZ = {
+  dormido:     ["01", "DORMIDO",     'di "hey jarvis"',            false],
+  avisando:    ["02", "AVISANDO",    "suena el aviso, no hables",  false],
+  escuchando:  ["03", "ESCUCHANDO",  "HABLA YA",                   true],
+  trabajando:  ["04", "TRABAJANDO",  'actuando · solo oye "para"', false],
+  hablando:    ["05", "HABLANDO",    'te contesta · solo "para"',  false],
+  preguntando: ["06", "PREGUNTANDO", "contesta sin la palabra",    true],
+};
+
+function pintaVoz(s) {
+  const n = document.getElementById("nucleo");
+  const v = s.voz || {encendida: false};
+
+  if (!v.encendida) {
+    n.classList.add("quieto", "apagado");
+    document.getElementById("ordinal").textContent = "ESTADO —/06";
+    document.getElementById("estadoVoz").textContent = "SIN VOZ";
+    document.getElementById("instruccion").textContent = v.motivo || "arranca con --voz";
+    document.getElementById("tMic").textContent = "—";
+    return;
+  }
+  n.classList.remove("apagado");
+  const [num, nombre, dice, vivo] = VOZ[v.estado] || ["—", (v.estado || "?").toUpperCase(), "", false];
+  document.getElementById("ordinal").textContent = "ESTADO " + num + "/06";
+  document.getElementById("estadoVoz").textContent = nombre;
+  document.getElementById("instruccion").textContent = dice;
+  // La onda solo se mueve cuando de verdad te esta oyendo. Animarla
+  // siempre seria decirle al usuario que le oyes cuando no.
+  n.classList.toggle("quieto", !vivo);
+
+  document.getElementById("tMic").textContent = v.micro || "—";
+  document.getElementById("tPalabra").textContent = "hey jarvis · J inglesa";
+  document.getElementById("tSalida").textContent = v.altavoz || "—";
+  document.getElementById("tModo").textContent =
+    (v.locuta_entero ? "locuta entero" : "resume") +
+    (v.seguimiento ? " · sigue escuchando" : "");
+
+  const c = v.cuenta || {};
+  document.getElementById("tTurnos").textContent = c.ordenes_mandadas ?? 0;
+  document.getElementById("tParadas").textContent = c.paradas ?? 0;
+  document.getElementById("tPermisos").textContent = c.permisos_dados ?? 0;
+  document.getElementById("tSinContestar").textContent = c.permisos_sin_respuesta ?? 0;
+
+  const abiertas = c.ventanas_abiertas || 0;
+  document.getElementById("ventanasUtiles").textContent =
+    abiertas ? (c.ventanas_con_habla || 0) + "/" + abiertas : "—";
+  document.getElementById("barraVentanas").style.width =
+    abiertas ? Math.round(100 * (c.ventanas_con_habla || 0) / abiertas) + "%" : "0%";
+}
+
+/* >>> LAS TARJETAS SE RECONCILIAN CONTRA LA SESION, NO SE AVISAN <<<
+   Reportado usandolo el 2026-08-26: "aunque por voz deniegue la alerta
+   de permisos, se queda ahi".
+
+   Y era cierto: `quitaTarjeta` solo se llamaba desde el boton de ESTA
+   pagina. Cuando contestaba la voz -- o cualquier otro canal --, el
+   servidor cerraba la puerta y la pantalla se quedaba enseñando una
+   peticion que ya no existia. En un panel donde la puerta es lo unico
+   que bloquea el sistema, eso es la pantalla mintiendo sobre lo unico
+   que no puede mentir.
+
+   Se arregla COMPARANDO, no notificando: en cada refresco se quita toda
+   tarjeta cuyo `id_peticion` ya no este en `/estado`. Un aviso se puede
+   perder -- un mensaje que no llega deja la tarjeta pegada otra vez --;
+   una comparacion se corrige sola a los dos segundos, y ademas cubre
+   gratis los otros canales y las otras pestanas. */
+function sincronizaPuertas(s) {
+  const vivas = new Set((s.pendientes || []).map((p) => p.id_peticion));
+  for (const caja of zonaPendientes.querySelectorAll(".puerta")) {
+    if (!vivas.has(caja.dataset.id)) caja.remove();
+  }
+}
+
+function pintaCanales(s) {
+  const c = s.canales || {};
+  document.getElementById("ledVoz").classList.toggle("off", !c.voz);
+  document.getElementById("ledTelegram").classList.toggle("off", !c.telegram);
+  document.getElementById("estadoCanalVoz").textContent =
+    c.voz ? ((s.voz && s.voz.estado) || "").toUpperCase() : "APAGADA";
+  // "No esta puesto" NO es un fallo: es una decision del usuario, y se
+  // pinta sin alarma.
+  document.getElementById("estadoCanalTelegram").textContent = c.telegram
+    ? "T+" + (c.escala_tras_minutos ?? "?") + " MIN"
+    : "SIN PONER";
+}
+
+/* >>> LOS SERVIDORES MCP, Y LOS CUATRO ESTADOS SON CUATRO <<<
+   (2026-09-07.) Se pintan por separado porque lo que tiene que hacer
+   quien mira es distinto en cada uno, y colapsarlos deja otra vez el
+   fallo mudo que esto viene a arreglar:
+
+     LISTO      conectado. Se dice tambien cuando va bien: si solo se
+                pintara el fallo, "no hay servidores" y "todos bien" se
+                verian igual, que es el 0 % de cuota otra vez.
+     CAIDO      se intento levantar y no subio. Es lo unico en rojo.
+     SIN ENTRAR `needs-auth`. NO es un fallo -- son los tres de
+                claude.ai y llevan ahi desde siempre --, asi que va en
+                gris: pintarlos en rojo seria una alarma diaria por algo
+                que el usuario no ha pedido nunca.
+     ?          un estado que este codigo no conoce. Se escribe el crudo
+                que mando el binario, sin traducirlo: Claude Code
+                inventa campos sin avisar (paso con `unifiedWindows`) y
+                tragarse una palabra nueva como si fuera "listo" es como
+                se llega a un panel que miente.
+
+   `sabido` es aparte: antes del primer turno no hay `init`, y ahi la
+   respuesta no es "no hay ninguno", es que no se ha mirado. */
+function pintaMcp(s) {
+  const m = s.mcp || {};
+  const modulo = document.getElementById("modMcp");
+  const rotulo = document.getElementById("mcp");
+  const lista = document.getElementById("listaMcp");
+  const servidores = m.servidores || [];
+  // Sin saberlo todavia, o sin ninguno: no hay nada que contar y no se
+  // ocupa sitio. No se escribe "0 servidores", que seria afirmar algo
+  // que en el primer caso no se sabe.
+  if (!m.sabido || !servidores.length) {
+    modulo.hidden = true;
+    rotulo.hidden = true;
+    lista.textContent = "";
+    return;
+  }
+  modulo.hidden = false;
+  rotulo.hidden = false;
+
+  lista.textContent = "";
+  for (const srv of servidores) {
+    const fila = document.createElement("div");
+    // El rojo va por CLASE y no por `style` inline: ver el comentario de
+    // `.canal.caido` en la hoja. Un inline lo dejaria fuera del alcance
+    // de los temas, que es el fallo del 09-03 con otra forma.
+    fila.className = srv.fallo ? "canal caido" : "canal";
+    const led = document.createElement("i");
+    led.className = srv.arranco === true ? "led" : "led off";
+    const nombre = document.createElement("span");
+    nombre.className = "nombre";
+    // textContent y no innerHTML: el nombre lo pone quien escribio el
+    // `.mcp.json`, o sea que no es una fuente de HTML.
+    // >>> Y NO SE PASA A MAYUSCULAS, AUNQUE LOS CANALES DE ARRIBA LO
+    // ESTEN <<< Aquellos son rotulos NUESTROS; esto es un identificador
+    // ajeno (contenido observado), y el mismo argumento por
+    // el que no se traduce el nombre de un microfono vale aqui.
+    // Ademas se vio en la captura de `nexo`, donde el rail es una franja
+    // estrecha: en mayusculas los tres de claude.ai se recortaban al
+    // MISMO texto ("CLAUDE.AI G…") y quedaban indistinguibles.
+    nombre.textContent = srv.nombre || "";
+    // El nombre se recorta con puntos suspensivos cuando no cabe, asi
+    // que el entero tiene que quedar en algun sitio: un nombre cortado
+    // que no se puede leer entero es un dato perdido, no un dato
+    // apretado.
+    nombre.title = srv.nombre || "";
+    const estado = document.createElement("span");
+    estado.className = "estado";
+    if (srv.arranco === true) {
+      estado.textContent = "LISTO";
+    } else if (srv.fallo) {
+      estado.textContent = "CAIDO";
+    } else if (srv.necesita_login) {
+      estado.textContent = "SIN ENTRAR";
+    } else {
+      // Lo que llego, tal cual, y con el interrogante delante para que
+      // no se lea como un estado nuestro.
+      estado.textContent = "? " + (srv.estado || "SIN ESTADO");
+    }
+    fila.append(led, nombre, estado);
+    lista.append(fila);
+  }
+
+  const caidos = m.caidos || [];
+  // >>> LA PALABRA VA SUELTA, Y NO PEGADA AL ESPACIO <<< Un `" CAIDO"`
+  // con el espacio dentro de las comillas parece igual de bueno y no lo
+  // es: `nucleo/textos.py` casa con `\s*` en los extremos, asi que esa
+  // clave casaria TAMBIEN con el `"CAIDO"` de arriba y le dejaria el
+  // espacio pegado en ingles. Se vio traduciendo la pagina, no en un
+  // test.
+  const palabra = caidos.length === 1 ? "CAIDO" : "CAIDOS";
+  rotulo.textContent = caidos.length
+    ? "MCP·" + caidos.length + " " + palabra
+    : "MCP·" + servidores.filter((x) => x.arranco === true).length +
+      "/" + servidores.length;
+  rotulo.classList.toggle("mal", caidos.length > 0);
+  rotulo.title = servidores
+    .map((x) => x.nombre + ": " + (x.estado || "sin estado")).join(" · ");
+}
+
+// >>> LA BARRA DE TAREA <<< Lo pidio el usuario el 2026-08-27: saber de
+// un vistazo que se esta haciendo, sin leerse el flujo. Dos fuentes, y
+// se distinguen porque no valen lo mismo: TAREA es lo que TU pediste,
+// literal, y sirve para comprobar que el dictado se entendio; HACIENDO
+// es lo que Claude Code dice que esta haciendo ahora mismo.
+//
+// Se pinta con `textContent`, como todo lo demas de esta pagina: ese
+// texto viene de un microfono y de un modelo, y ninguno de los dos es
+// una fuente de HTML.
+// >>> Y DESDE EL 2026-09-02 TAMBIEN CUELGA DE LOS EVENTOS <<<
+// Se pintaba desde `refrescaEstado`, o sea con hasta 2 s de retraso. Al
+// construir el cabezal de la tira habia que mandar la tarea por SSE de
+// todas formas, y dejar los dos sitios leyendo fuentes distintas es como
+// acabaron divergiendo los tres normalizadores de `voz/`: el cabezal
+// diria una cosa y la franja otra, sin un solo error. Una fuente,
+// `enDirecto`, y dos dibujantes.
+function pintaTarea() {
+  const caja = document.getElementById("tarea");
+  if (!enDirecto.tarea) { caja.hidden = true; return; }
+  caja.hidden = false;
+  document.getElementById("tareaQuien").textContent =
+    enDirecto.origen === "claude" ? "HACIENDO" : "LE DIJISTE";
+  document.getElementById("tareaQue").textContent = enDirecto.tarea;
+  // >>> LO QUE NO SE VE NO SE ELIGE <<<
+  // Es la leccion de la tercera salida de la puerta (JC-0002, el 29): el
+  // modelo la tenia y la pantalla no, asi que nadie la usaba. Una tecla
+  // sin rotulo es exactamente lo mismo. Se ensena SOLO mientras Claude
+  // trabaja, que es cuando hay algo que parar.
+  document.getElementById("tareaEsc").hidden = enDirecto.origen !== "claude";
+}
+
+// >>> UNA VENTANA QUE NO VINO ESCRIBE "?", NUNCA "0 %" <<<
+// Es la mitad de pantalla del fallo del 2026-09-03: el servidor leia un
+// campo que ya no llega y `or 0.0` lo convertia en un cero creible. Que
+// la pagina no pueda escribir un cero por su cuenta es lo que hace que
+// si vuelve a pasar se VEA, en vez de mentir con aplomo.
+// >>> Y UNA VENTANA YA REINICIADA TAMPOCO TIENE NUMERO <<<
+// Se reporto el 2026-09-04: cuando la sesion llega al limite se espera a
+// que la ventana se reinicie y se vuelve a trabajar, pero las cuotas de
+// la pantalla no se actualizaban hasta reiniciar Jarvis. La cifra
+// que se quedaba puesta era correcta -- para una ventana que ya no
+// existe --, y el peor momento es justo ese: al agotarse la cuota se
+// deja de trabajar, o sea que no llega ningun evento que la pise.
+// `caducada` lo dice el servidor comparando `reinicia_en` con el reloj,
+// y aqui pasa a ser "?" por la MISMA regla que una ventana ausente: no
+// se sabe cuanto se lleva gastado hasta el proximo turno, y un 0 % seria
+// otra vez un cero creible.
+function pctCuota(v, campo) {
+  if (v && v.caducada) return "?";
+  return (v && typeof v[campo] === "number") ? v[campo] + " %" : "?";
+}
+
+// Cuando vuelve el reloj. La hora si es hoy, y el dia si no: "vuelve a
+// las 21:30" y "vuelve el jueves" son las dos respuestas que se pueden
+// usar, y un epoch en pantalla no es ninguna de las dos.
+function cuandoVuelve(epoch) {
+  if (!epoch) return "";
+  const d = new Date(epoch * 1000);
+  const ahora = new Date();
+  const hora = d.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+  if (d.toDateString() === ahora.toDateString()) return "vuelve a las " + hora;
+  return "vuelve el " + d.toLocaleDateString([], {weekday: "long"}) + " " + hora;
+}
+
+// Las cajas de cada reloj, por id. Van en una tabla y no armando el id
+// con "cuota" + Cual: eso metia en el JS dos literales capitalizados que
+// PARECEN copia -- lo canto `test_ningun_ROTULO_se_queda_sin_traduccion`
+// nada mas escribirlo --, y un identificador que se traduce deja de
+// encontrar su elemento.
+// Las claves NO se llaman "sesion"/"semana" a proposito: ese texto es
+// tambien el rotulo del registro, y `nucleo/textos.py` traduce el
+// literal alla donde este. Con la clave traducida y el objeto no,
+// `CAJAS_CUOTA[cual]` seria `undefined` y la cuota dejaria de pintarse
+// sin un solo error en consola. Un identificador se puede renombrar sin
+// que nadie lo note; un rotulo, no.
+const CAJAS_CUOTA = {
+  ventanaSesion: {num: "cuotaSesion", barra: "barraSesion",
+                  vuelve: "vuelveSesion"},
+  ventanaSemana: {num: "cuotaSemana", barra: "barraSemana",
+                  vuelve: "vuelveSemana"},
+};
+
+// Un reloj de cuota en el rail: el numero, su barra y cuando vuelve.
+//
+// >>> LA BARRA DIBUJA EL NUMERO QUE TIENE ENCIMA <<<
+// Sigue en pie y es lo que impide una barra al 30 % debajo de un "70 %".
+// Lo que cambio el 2026-09-04 es CUAL es ese numero en la de la sesion:
+// las dos dicen ahora lo gastado, asi que las dos se LLENAN. Ver el
+// comentario de la CARGA, arriba: una barra casi vacia se lee como
+// "queda sitio" aunque encima ponga "QUEDA 3 %", y ese 3 % era el
+// ultimo aviso antes de quedarse sin cuota.
+//
+// >>> Y UNA VENTANA CADUCADA NO PINTA BARRA <<<
+// Dejar la barra llena al 97 % junto a un "?" seria contarlo dos veces
+// y con dos respuestas distintas -- que es el mismo fallo de forma de
+// arriba, al reves. Si no hay numero, no hay barra.
+function pintaVentana(cual, v, campo) {
+  const caja = CAJAS_CUOTA[cual];
+  const caducada = !!(v && v.caducada);
+  const numero = document.getElementById(caja.num);
+  numero.textContent = pctCuota(v, campo);
+  const cuanto = (!caducada && v && typeof v[campo] === "number") ? v[campo] : 0;
+  const barra = document.getElementById(caja.barra);
+  barra.style.width = Math.max(0, Math.min(100, cuanto)) + "%";
+  // >>> Y SI SE PASO DEL 100, LA BARRA LO DICE <<< El ancho no puede
+  // crecer mas, asi que sin esto el dibujo se queda igual que a un 100
+  // exacto justo cuando la cifra empieza a decir otra cosa. Ver la hoja.
+  // Va por CLASE y no por `style` inline, como el CAIDO de los MCP: un
+  // inline dejaria este color fuera del alcance de los temas.
+  const pasada = cuanto > 100;
+  barra.classList.toggle("pasada", pasada);
+  numero.classList.toggle("pasada", pasada);
+  // Y debajo, lo que hace falta saber en cada caso. Una ventana que ya
+  // volvio no dice "vuelve a las 01:20" -- eso ya paso, y leerlo en
+  // pasado es lo que hacia pensar que seguia agotada.
+  document.getElementById(caja.vuelve).textContent = !v ? ""
+    : caducada ? "ya se reinicio, sin dato hasta el proximo turno"
+    : cuandoVuelve(v.reinicia_en);
+}
+
+function pintaResto(s) {
+  const suelo = s.suelo || {};
+  document.getElementById("cuantasZonas").textContent = suelo.zonas ?? "—";
+  document.getElementById("estadoSuelo").textContent =
+    suelo.estado ? diceSuelo(suelo.estado).toUpperCase() : "—";
+  pintaVentana("ventanaSesion", s.limite && s.limite.sesion, "porcentaje");
+  pintaVentana("ventanaSemana", s.limite && s.limite.semana, "porcentaje");
+  document.getElementById("pieTecnico").textContent =
+    "SUELO ..... " + (suelo.estado ? diceSuelo(suelo.estado) : "?").toUpperCase() + "\n" +
+    "SESION .... " + (s.session_id || "sin abrir") + "\n" +
+    "CORE ...... " + (s.modelo || "?");
+}
+
+// >>> TEMPORIZADOR PROPIO, Y NO ENVOLVIENDO AL DE ARRIBA <<<
+// El `setInterval` de `refrescaEstado` capturo la referencia ORIGINAL,
+// asi que reasignar la funcion no habria cambiado nada: el intervalo
+// habria seguido llamando a la vieja y el nucleo no se habria pintado
+// nunca. Son dos GET a 127.0.0.1 cada dos segundos; el desfase de un
+// segundo es para que no salgan a la vez.
+async function pintaCabina() {
+  try {
+    const s = await (await pide("/estado")).json();
+    pintaVoz(s); pintaCanales(s); pintaMcp(s); pintaResto(s); sincronizaPuertas(s);
+  } catch (e) { /* el servidor se fue; el flujo ya lo dira */ }
+}
+setTimeout(() => setInterval(pintaCabina, 2000), 1000);
+pintaCabina();
+</script>
+</body>
+</html>
